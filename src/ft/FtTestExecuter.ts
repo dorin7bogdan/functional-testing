@@ -95,7 +95,6 @@ export default class FtTestExecuter {
     const propsFileName = `props_${suffix}.txt`;
     const xmlResFileName = `results_${suffix}.xml`;
     const propsFullPath = path.join(config.runnerWsPath, propsFileName);
-    const runMode = AlmRunMode[config.almRunMode as keyof typeof AlmRunMode];
     logger.debug(`createAlmProps: "${propsFileName}" ...`);
 
     const props: { [key: string]: string } = {
@@ -108,7 +107,7 @@ export default class FtTestExecuter {
       SSOEnabled: `${config.almSSOEnabled}`,
       almClientId: config.almClientId,
       almApiKeySecretBasicAuth: toBase64(config.almApiKeySecret),
-      almRunMode: `${runMode}`,
+      almRunMode: `RUN_${config.almRunMode}`,
       almRunHost: config.almRunHost,
       almTimeout: `${config.almTimeout}`,
       resultsFilename: xmlResFileName,
