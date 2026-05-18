@@ -34,6 +34,7 @@ import FTL from './FTL.js';
 import { checkFileExists, checkReadWriteAccess, escapePropVal, getTimestamp, toBase64 } from '../utils/utils.js';
 import { config } from '../config/config.js';
 import { RunType } from '../dto/RunType.js';
+import { AlmRunMode } from '../dto/AlmRunMode.js';
 
 const logger = new Logger('FtTestExecuter');
 
@@ -90,11 +91,11 @@ export default class FtTestExecuter {
     return { propsFileName, xmlResFileName };
   }
 
-  private static async createAlmProps(runtype: string, suffix: string, testPaths: string[]): Promise<{ propsFileName: string, xmlResFileName: string }> {
+  private static async createAlmProps(runtype: string, suffix: string, testSets: string[]): Promise<{ propsFileName: string, xmlResFileName: string }> {
     const propsFileName = `props_${suffix}.txt`;
     const xmlResFileName = `results_${suffix}.xml`;
     const propsFullPath = path.join(config.runnerWsPath, propsFileName);
-
+    const runMode = AlmRunMode[config.almRunMode as keyof typeof AlmRunMode];
     logger.debug(`createAlmProps: "${propsFileName}" ...`);
 
     const props: { [key: string]: string } = {
@@ -107,16 +108,16 @@ export default class FtTestExecuter {
       SSOEnabled: `${config.almSSOEnabled}`,
       almClientId: config.almClientId,
       almApiKeySecretBasicAuth: toBase64(config.almApiKeySecret),
-      almRunMode: `RUN_${config.almRunMode}`,
+      almRunMode: `${runMode}`,
       almRunHost: config.almRunHost,
       almTimeout: `${config.almTimeout}`,
       resultsFilename: xmlResFileName,
       resultTestNameOnly: `${config.resultTestNameOnly}`, // TODO review is applicable for ALM run?
       resultUnifiedTestClassname: `${config.resultUnifiedTestClassname}` // TODO review is applicable for ALM run?
     };
-    for (let i = 0; i < testPaths.length; i++) {
+    for (let i = 0; i < testSets.length; i++) {
       const key = `TestSet${i + 1}`;
-      props[key] = escapePropVal(testPaths[i]);
+      props[key] = escapePropVal(testSets[i]);
     }
 
     await this.writePropsFile(props, propsFullPath);

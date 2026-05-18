@@ -136351,6 +136351,42 @@ var RunType;
     RunType[RunType["ALMLab"] = 3] = "ALMLab";
 })(RunType || (RunType = {}));
 
+;// CONCATENATED MODULE: ./src/dto/AlmRunMode.ts
+/*
+ * Copyright 2026 Open Text.
+ *
+ * The only warranties for products and services of Open Text and
+ * its affiliates and licensors (�Open Text�) are as may be set forth
+ * in the express warranty statements accompanying such products and services.
+ * Nothing herein should be construed as constituting an additional warranty.
+ * Open Text shall not be liable for technical or editorial errors or
+ * omissions contained herein. The information contained herein is subject
+ * to change without notice.
+ *
+ * Except as specifically indicated otherwise, this document contains
+ * confidential information and a valid license is required for possession,
+ * use or copying. If this work is provided to the U.S. Government,
+ * consistent with FAR 12.211 and 12.212, Commercial Computer Software,
+ * Computer Software Documentation, and Technical Data for Commercial Items are
+ * licensed to the U.S. Government under vendor's standard commercial license.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+var AlmRunMode;
+(function (AlmRunMode) {
+    AlmRunMode[AlmRunMode["LOCAL"] = 0] = "LOCAL";
+    AlmRunMode[AlmRunMode["REMOTE"] = 1] = "REMOTE";
+    AlmRunMode[AlmRunMode["PLANNED_HOST"] = 2] = "PLANNED_HOST";
+})(AlmRunMode || (AlmRunMode = {}));
+
 ;// CONCATENATED MODULE: ./src/ft/FtTestExecuter.ts
 /*
  * Copyright 2026 Open Text.
@@ -136380,6 +136416,7 @@ var RunType;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 
 
 
@@ -136435,10 +136472,11 @@ class FtTestExecuter {
         await this.writePropsFile(props, propsFullPath);
         return { propsFileName, xmlResFileName };
     }
-    static async createAlmProps(runtype, suffix, testPaths) {
+    static async createAlmProps(runtype, suffix, testSets) {
         const propsFileName = `props_${suffix}.txt`;
         const xmlResFileName = `results_${suffix}.xml`;
         const propsFullPath = external_path_.join(config.runnerWsPath, propsFileName);
+        const runMode = AlmRunMode[config.almRunMode];
         FtTestExecuter_logger.debug(`createAlmProps: "${propsFileName}" ...`);
         const props = {
             runType: runtype,
@@ -136450,16 +136488,16 @@ class FtTestExecuter {
             SSOEnabled: `${config.almSSOEnabled}`,
             almClientId: config.almClientId,
             almApiKeySecretBasicAuth: toBase64(config.almApiKeySecret),
-            almRunMode: `RUN_${config.almRunMode}`,
+            almRunMode: `${runMode}`,
             almRunHost: config.almRunHost,
             almTimeout: `${config.almTimeout}`,
             resultsFilename: xmlResFileName,
             resultTestNameOnly: `${config.resultTestNameOnly}`, // TODO review is applicable for ALM run?
             resultUnifiedTestClassname: `${config.resultUnifiedTestClassname}` // TODO review is applicable for ALM run?
         };
-        for (let i = 0; i < testPaths.length; i++) {
+        for (let i = 0; i < testSets.length; i++) {
             const key = `TestSet${i + 1}`;
-            props[key] = escapePropVal(testPaths[i]);
+            props[key] = escapePropVal(testSets[i]);
         }
         await this.writePropsFile(props, propsFullPath);
         return { propsFileName, xmlResFileName };
@@ -136910,42 +136948,6 @@ class JUnitParser {
     }
 }
 
-;// CONCATENATED MODULE: ./src/dto/AlmRunMode.ts
-/*
- * Copyright 2026 Open Text.
- *
- * The only warranties for products and services of Open Text and
- * its affiliates and licensors (�Open Text�) are as may be set forth
- * in the express warranty statements accompanying such products and services.
- * Nothing herein should be construed as constituting an additional warranty.
- * Open Text shall not be liable for technical or editorial errors or
- * omissions contained herein. The information contained herein is subject
- * to change without notice.
- *
- * Except as specifically indicated otherwise, this document contains
- * confidential information and a valid license is required for possession,
- * use or copying. If this work is provided to the U.S. Government,
- * consistent with FAR 12.211 and 12.212, Commercial Computer Software,
- * Computer Software Documentation, and Technical Data for Commercial Items are
- * licensed to the U.S. Government under vendor's standard commercial license.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *   http://www.apache.org/licenses/LICENSE-2.0
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-var AlmRunMode;
-(function (AlmRunMode) {
-    AlmRunMode[AlmRunMode["LOCAL"] = 0] = "LOCAL";
-    AlmRunMode[AlmRunMode["REMOTE"] = 1] = "REMOTE";
-    AlmRunMode[AlmRunMode["PLANNED_HOST"] = 2] = "PLANNED_HOST";
-})(AlmRunMode || (AlmRunMode = {}));
-
 ;// CONCATENATED MODULE: ./src/eventHandler.ts
 /*
  * Copyright 2026 Open Text.
@@ -137187,11 +137189,12 @@ const validateAndGetRunType = () => {
 };
 const validateAlmRunMode = () => {
     const raw = config.almRunMode; // e.g. "LOCAL", "REMOTE", "PLANNED_HOST"
-    eventHandler_logger.debug(`validateAlmRunMode: '${raw}'`);
-    const almRunMode = AlmRunMode[raw];
-    if (!almRunMode) {
-        throw new Error(`Invalid almRunMode value '${raw}'. Allowed: ${Object.keys(AlmRunMode).join(', ')}`);
+    eventHandler_logger.debug(`validateAlmRunMode: ${raw}`);
+    const allowedKeys = Object.keys(AlmRunMode).filter(k => isNaN(Number(k)));
+    if (!isNaN(Number(raw)) || !(raw in AlmRunMode)) {
+        throw new Error(`Invalid almRunMode value '${raw}'. Allowed: ${allowedKeys.join(', ')}`);
     }
+    const almRunMode = AlmRunMode[raw];
     if (almRunMode === AlmRunMode.REMOTE && !config.almRunHost) {
         throw new Error(`almRunHost is required when almRunMode is '${raw}'`);
     }

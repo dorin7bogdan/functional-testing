@@ -262,11 +262,12 @@ const validateAndGetRunType = (): RunType => {
 }
 const validateAlmRunMode = (): void => {
   const raw = config.almRunMode; // e.g. "LOCAL", "REMOTE", "PLANNED_HOST"
-  logger.debug(`validateAlmRunMode: '${raw}'`);
-  const almRunMode = AlmRunMode[raw as keyof typeof AlmRunMode];
-  if (!almRunMode) {
-    throw new Error(`Invalid almRunMode value '${raw}'. Allowed: ${Object.keys(AlmRunMode).join(', ')}`);
+  logger.debug(`validateAlmRunMode: ${raw}`);
+  const allowedKeys = Object.keys(AlmRunMode).filter(k => isNaN(Number(k)));
+  if (!isNaN(Number(raw)) || !(raw in AlmRunMode)) {
+    throw new Error(`Invalid almRunMode value '${raw}'. Allowed: ${allowedKeys.join(', ')}`);
   }
+  const almRunMode = AlmRunMode[raw as keyof typeof AlmRunMode];
   if (almRunMode === AlmRunMode.REMOTE && !config.almRunHost) {
     throw new Error(`almRunHost is required when almRunMode is '${raw}'`);
   }
