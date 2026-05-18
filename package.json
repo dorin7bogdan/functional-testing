@@ -24,31 +24,23 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@actions/artifact": "^6.2.1",
-    "@actions/core": "^3.0.1",
     "@actions/exec": "^3.0.0",
-    "@actions/github": "^9.1.1",
     "@xmldom/xmldom": "^0.9.10",
     "fs-extra": "^11.3.5",
     "sax": "^1.6.0",
     "tsx": "^4.21.0",
     "xml2js": "^0.6.2",
     "xmlbuilder": "^15.1.1",
-    "yaml": "^3.0.0-1"
+    "yaml": "^2.9.0"
   },
-  "overrides": {
-    "@octokit/endpoint": "11.0.0",
-    "@octokit/request": "10.0.8",
-    "@octokit/plugin-paginate-rest": "14.0.0",
-    "@octokit/request-error": "7.1.0",
-    "undici": "8.2.0"
-  },
+  "overrides": {},
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^24.12.4",
     "@types/sax": "^1.2.7",
     "@types/xml2js": "^0.4.14",
     "@vercel/ncc": "^0.38.4",
-    "lint-staged": "^15.4.3",
+    "lint-staged": "^17.0.4",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3"
   },

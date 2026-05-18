@@ -40,6 +40,18 @@ interface Config {
   resultUnifiedTestClassname: boolean;
   archiveReportsAsSingleArtifact: boolean;
   githubToken: string;
+  almTestSets: string[];
+  almServerUrl: string;
+  almUsername: string;
+  almPassword: string;
+  almDomain: string;
+  almProject: string;
+  almSSOEnabled: boolean;
+  almClientId: string;
+  almApiKeySecret: string;
+  almRunMode: string;
+  almRunHost: string;
+  almTimeout: number;
   owner: string;
   repo: string;
   repoUrl: string;
@@ -98,6 +110,18 @@ try {
     resultUnifiedTestClassname: getInput('resultUnifiedTestClassname').toLowerCase() === 'true',
     archiveReportsAsSingleArtifact: getInput('archiveReportsAsSingleArtifact').toLowerCase() === 'true',
     githubToken: getInput('githubToken'),
+    almTestSets: getUnquotedInputEx('almTestSets'),
+    almServerUrl: getInput('almServerUrl'),
+    almUsername: getInput('almUsername'),
+    almPassword: getInput('almPassword'),
+    almDomain: getInput('almDomain'),
+    almProject: getInput('almProject'),
+    almSSOEnabled: getInput('almSSOEnabled').toLowerCase() === 'true',
+    almClientId: getInput('almClientId'),
+    almApiKeySecret: getInput('almApiKeySecret'),
+    almRunMode: getInput('almRunMode').toUpperCase(),
+    almRunHost: getInput('almRunHost'),
+    almTimeout: Number.parseInt(getInput('almTimeout')),
     owner: owner,
     repo: repo,
     repoUrl: `${serverUrl}/${owner}/${repo}.git`,

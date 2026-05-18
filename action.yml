@@ -5,9 +5,18 @@ inputs:
     description: 'Type of run: filesystem | filesystem-parallel | alm | alm-lab'
     required: false
     default: "filesystem"
+# This section defines FileSystem-specific configuration inputs
   testPaths:
-    description: 'Relative path to the a tests directory or to a specific test folder (i.e. "path\to\folder" or "path\to\GUITest1"). For multiple individual tests you can use an array of paths: ["path\\to\\GUITest1", "path\\to\\GUITest2", ...]. Absolute paths are not allowed. The relative paths will be validated against the repository root.'
-    required: true
+    description: 'Relative path to a tests directory or to a specific test folder (i.e. "path\to\folder" or "path\to\GUITest1" or "path\to\yourfile.mtbx"). 
+                For multiple individual tests you can use an array of paths: ["path\\to\\GUITest1", "path\\to\\GUITest2", ...]. 
+                Any path must be relative to the repository root.
+                IMPORTANT: Absolute paths are not allowed.
+                If using a .mtbx file, the test paths inside it must be relative to your GitHub organization, for example:
+                  <Mtbx>
+                    <Test name="GUITest1" path="your-repository-name\path\to\GUITest1"></Test>
+                    <Test name="GUITest2" path="your-repository-name\path\to\GUITest2"></Test>
+                  </Mtbx>'
+    required: false
   timeout:
     description: 'The number of seconds before the test run times out.'
     required: false
@@ -31,6 +40,52 @@ inputs:
   githubToken:
     description: 'GitHub PAT'
     required: true
+
+# This section defines ALM-specific configuration inputs
+  almTestSets:
+    description: 'The path to an ALM test set or ALM folder with test sets (i.e. "path\to\folder" or "path\to\TestSet1"). For multiple test sets you can use an array of paths: ["path\\to\\TestSet1", "path\\to\\TestSet2", ...]. The "Root" ALM folder is optional.'
+    required: false
+  almServerUrl:
+    description: 'The URL of the ALM server. Format: http(s)://{hostname-or-ip}[:{port}]/qcbin (example: http://10.105.32.108:8080/qcbin )'
+    required: false
+  almUsername:
+    description: 'The user name to use for the ALM connection'
+    required: false
+  almPassword:
+    description: 'The password to use for the ALM connection'
+    required: false
+  almDomain:
+    description: 'The ALM domain name which the ALM projects can be found in'
+    required: false
+  almProject:
+    description: 'The ALM project to open under the specified ALM domain'
+    required: false
+  almSSOEnabled:
+    description: 'Use the SSO authentication mode when login to the ALM server. Requires almClientId and almApiKeySecret'
+    required: false
+    default: "false"
+  almClientId:
+    description: 'Required if almSSOEnabled is true. The client ID used for login'
+    required: false
+  almApiKeySecret:
+    description: 'Required if almSSOEnabled is true. The API key secret used for login'
+    required: false
+  almRunMode:
+    description: '
+      "LOCAL"        => the ALM tests run on the local machine (self-hosted runner).
+      "REMOTE"       => the ALM tests run on a the machine specified in the almRunHost parameter.
+      "PLANNED_HOST" => the ALM tests run on the machines configured in the ALM test set. Only tet sets of type "Default" are supported.'
+    required: false
+    default: "LOCAL"
+  almRunHost:
+    description: 'Required and used only if almRunMode is "REMOTE". The hostname or IP address of the machine which to run the ALM tests on.'
+    required: false
+  almTimeout:
+    description: 'The number of seconds before the ALM test run times out. Default = 2147483647 (around 68 years)'
+    required: false
+    default: "2147483647"
+
+# This section defines common configuration inputs
   ftlUrl:
     description: 'The URL of OpenText FTToolsLauncher.exe'
     required: false

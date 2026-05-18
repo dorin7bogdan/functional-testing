@@ -31,20 +31,24 @@ import { promises as fs } from 'fs';
 import Logger from '../utils/logger.js';
 import { ExitCode } from './ExitCode.js';
 import FTL from './FTL.js';
-import { checkFileExists, checkReadWriteAccess, escapePropVal, getTimestamp } from '../utils/utils.js';
+import { checkFileExists, checkReadWriteAccess, escapePropVal, getTimestamp, toBase64 } from '../utils/utils.js';
 import { config } from '../config/config.js';
 import { RunType } from '../dto/RunType.js';
 
 const logger = new Logger('FtTestExecuter');
 
 export default class FtTestExecuter {
-  public static async preProcess(runType: RunType, testPaths: string[]): Promise<{ propsFileName: string, xmlResFileName: string }> {
+  public static async preProcess(runType: RunType, testOrTestSetPaths: string[]): Promise<{ propsFileName: string, xmlResFileName: string }> {
     logger.debug(`preProcess ...`);
     await checkReadWriteAccess(config.runnerWsPath);
     const suffix = getTimestamp();
     const isParallel = runType === RunType.FSParallel;
-    const runtype = runType === RunType.ALM ? FTL.Alm : FTL.FileSystem;
-    return await this.createPropsFile(runtype, suffix, testPaths, isParallel);
+    if (runType === RunType.FS || runType === RunType.FSParallel) {
+      return await this.createFSProps(FTL.FileSystem, suffix, testOrTestSetPaths, isParallel);
+    } else if (runType === RunType.ALM) {
+      return await this.createAlmProps(FTL.Alm, suffix, testOrTestSetPaths);
+    }
+    return { propsFileName: '', xmlResFileName: '' };
   }
 
   public static async process(propsFileName: string): Promise<ExitCode> {
@@ -58,12 +62,12 @@ export default class FtTestExecuter {
     return exitCode;
   }
 
-  private static async createPropsFile(runtype: string, suffix: string, testPaths: string[], isParallel: boolean = false): Promise<{ propsFileName: string, xmlResFileName: string }> {
+  private static async createFSProps(runtype: string, suffix: string, testPaths: string[], isParallel: boolean = false): Promise<{ propsFileName: string, xmlResFileName: string }> {
     const propsFileName = `props_${suffix}.txt`;
     const xmlResFileName = `results_${suffix}.xml`;
     const propsFullPath = path.join(config.runnerWsPath, propsFileName);
 
-    logger.debug(`createPropsFile: "${propsFileName}" ...`);
+    logger.debug(`createFSProps: "${propsFileName}" ...`);
 
     const props: { [key: string]: string } = {
       runType: runtype,
@@ -81,14 +85,50 @@ export default class FtTestExecuter {
       props["MobileHostAddress"] = config.labUrl;
       props["MobileExecToken"] = config.labExecToken;
     }*/
-    try {
-      await fs.writeFile(propsFullPath, Object.entries(props).map(([k, v]) => `${k}=${v}`).join('\n'));
-    } catch (error: any) {
-      logger.error(`createPropsFile: ${error.message}`);
-      throw new Error('Failed when creating properties file');
-    }
+    await this.writePropsFile(props, propsFullPath);
 
     return { propsFileName, xmlResFileName };
   }
 
+  private static async createAlmProps(runtype: string, suffix: string, testPaths: string[]): Promise<{ propsFileName: string, xmlResFileName: string }> {
+    const propsFileName = `props_${suffix}.txt`;
+    const xmlResFileName = `results_${suffix}.xml`;
+    const propsFullPath = path.join(config.runnerWsPath, propsFileName);
+
+    logger.debug(`createAlmProps: "${propsFileName}" ...`);
+
+    const props: { [key: string]: string } = {
+      runType: runtype,
+      almServerUrl: config.almServerUrl,
+      almUsername: config.almUsername,
+      almPasswordBasicAuth: toBase64(config.almPassword),
+      almDomain: config.almDomain,
+      almProject: config.almProject,
+      SSOEnabled: `${config.almSSOEnabled}`,
+      almClientId: config.almClientId,
+      almApiKeySecretBasicAuth: toBase64(config.almApiKeySecret),
+      almRunMode: `RUN_${config.almRunMode}`,
+      almRunHost: config.almRunHost,
+      almTimeout: `${config.almTimeout}`,
+      resultsFilename: xmlResFileName,
+      resultTestNameOnly: `${config.resultTestNameOnly}`, // TODO review is applicable for ALM run?
+      resultUnifiedTestClassname: `${config.resultUnifiedTestClassname}` // TODO review is applicable for ALM run?
+    };
+    for (let i = 0; i < testPaths.length; i++) {
+      const key = `TestSet${i + 1}`;
+      props[key] = escapePropVal(testPaths[i]);
+    }
+
+    await this.writePropsFile(props, propsFullPath);
+    return { propsFileName, xmlResFileName };
+  }
+
+  private static async writePropsFile(props: { [key: string]: string }, propsFullPath: string): Promise<void> {
+    try {
+      await fs.writeFile(propsFullPath, Object.entries(props).map(([k, v]) => `${k}=${v}`).join('\n'));
+    } catch (error: any) {
+      logger.error(`writePropsFile: ${error.message}`);
+      throw new Error('Failed when creating properties file');
+    }
+  }
 }

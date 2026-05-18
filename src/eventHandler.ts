@@ -38,6 +38,7 @@ import * as fs from 'fs-extra';
 import JUnitParser from './reporting/JUnitParser.js';
 import { RunType } from './dto/RunType.js';
 import { checkoutRepo } from './utils/utils.js';
+import { AlmRunMode } from './dto/AlmRunMode.js';
 
 const logger: Logger = new Logger('eventHandler');
 const JUNIT_RES_XML = 'junit-results.xml';
@@ -77,8 +78,24 @@ export const handleCurrentEvent = async (): Promise<void> => {
 
   await checkoutRepo(workDir);
 
+  let testOrTestSetPaths: string[] = [];
   const runType = validateAndGetRunType();
-  const testPaths = await validateAndGetTestPaths();
+  switch (runType) {
+    case RunType.FS:
+      testOrTestSetPaths = await validateAndGetTestPaths();
+      break;
+    case RunType.FSParallel:
+      throw new Error(`Not yet implemented, runType: ${runType}`);
+    case RunType.ALM:
+      validateAlmRunMode();
+      validateTestSets();
+      testOrTestSetPaths = config.almTestSets;
+      break;
+    case RunType.ALMLab:
+      throw new Error(`Not yet implemented, runType: ${runType}`);
+    default:
+      throw new Error(`Unsupported runType: ${runType}`);
+  }
   const exitCode = await run();
   //TODO use exitCode ?
 
@@ -91,7 +108,7 @@ export const handleCurrentEvent = async (): Promise<void> => {
     let xmlResFileName: string | undefined;
     let reportPaths: string[] = [];
     try {
-      ({ propsFileName, xmlResFileName } = await FtTestExecuter.preProcess(runType, testPaths));
+      ({ propsFileName, xmlResFileName } = await FtTestExecuter.preProcess(runType, testOrTestSetPaths));
       const exitCode = await FtTestExecuter.process(propsFileName);
       reportPaths = await buildJUnitReport(xmlResFileName);
       await uploadArtifacts(propsFileName, xmlResFileName, reportPaths);
@@ -244,8 +261,20 @@ const validateAndGetRunType = (): RunType => {
   logger.debug(`validateAndGetRunType: '${raw}' => RunType.${RunType[runType]}`);
   return runType;
 }
+const validateAlmRunMode = (): void => {
+  const raw = config.almRunMode; // e.g. "LOCAL", "REMOTE", "PLANNED_HOST"
+  const almRunMode = AlmRunMode[raw as keyof typeof AlmRunMode];
+  if (!almRunMode) {
+    throw new Error(`Invalid almRunMode value '${raw}'. Allowed: ${Object.keys(AlmRunMode).join(', ')}`);
+  }
+  if (almRunMode === AlmRunMode.REMOTE && !config.almRunHost) {
+    throw new Error(`almRunHost is required when almRunMode is '${raw}'`);
+  }
+  logger.debug(`validateAlmRunMode: '${raw}'`);
+}
 
 const validateAndGetTestPaths = async (): Promise<string[]> => {
+  logger.debug("validateAndGetTestPaths: ...");
   if (!config.testPaths || config.testPaths.length === 0) {
     throw new Error(`Missing testPaths value`);
   }
@@ -267,6 +296,15 @@ const validateAndGetTestPaths = async (): Promise<string[]> => {
   logger.debug(`validateAndGetTestPaths: resolved test paths:`);
   testPaths.forEach(p => logger.debug(`"${p}"`));
   return testPaths;
+}
+
+const validateTestSets = (): void => {
+  logger.debug("validateAndGetTestSets: ...");
+
+  if (!config.almTestSets || config.almTestSets.length === 0) {
+    throw new Error(`Missing almTestSets value`);
+  }
+  return;
 }
 
 const buildJUnitReport = async (xmlResFileName: string): Promise<string[]> => {

@@ -33,7 +33,6 @@ import * as path from 'path';
 import TestType from '../dto/TestType.js';
 import Logger from './logger.js';
 import { exec } from '@actions/exec';
-import * as core from '@actions/core';
 import { config } from '../config/config.js';
 
 const ACTIONS_XML = 'actions.xml';
@@ -164,9 +163,7 @@ const parseTimeToFloat = (time: string): number => {
 const checkoutRepo = async (workDir: string): Promise<void> => {
   logger.info('BEGIN checkoutRepo ...');
   try {
-    const token = core.getInput('githubToken', { required: true });
-
-    const authRepoUrl = config.repoUrl.replace('https://', `https://x-access-token:${token}@`);
+    const authRepoUrl = config.repoUrl.replace('https://', `https://x-access-token:${config.githubToken}@`);
     logger.debug(`Expected authRepoUrl: ${authRepoUrl}`);
 
     // Filter process.env to exclude undefined values
@@ -248,4 +245,8 @@ const checkoutRepo = async (workDir: string): Promise<void> => {
   }
 }
 
-export { isBlank, isTestMainFile, getTestType, getParentFolderFullPath, extractWorkflowFileName, sleep, getFileIfExist, getTimestamp, escapePropVal, checkReadWriteAccess, checkFileExists, escapeXML, parseTimeToFloat, checkoutRepo };
+const toBase64 = (value: string): string => {
+  return Buffer.from(value, 'utf8').toString('base64');
+}
+
+export { isBlank, isTestMainFile, getTestType, getParentFolderFullPath, extractWorkflowFileName, sleep, getFileIfExist, getTimestamp, escapePropVal, checkReadWriteAccess, checkFileExists, escapeXML, parseTimeToFloat, checkoutRepo, toBase64 };

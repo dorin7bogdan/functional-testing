@@ -29,15 +29,11 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { DefaultArtifactClient } from '@actions/artifact';
-import { getOctokit, context } from '@actions/github';
 import Logger from '../utils/logger.js';
-import { config } from '../config/config.js';
 
-const _owner_repo = { owner: config.owner, repo: config.repo };
 export default class GitHubClient {
   private static logger: Logger = new Logger('githubClient');
 
-  private static octokit = getOctokit(config.githubToken);
   private static artifactClient = new DefaultArtifactClient();
 
   public static uploadArtifact = async (parentPath: string, dirOrFileName: string, artifactName: string): Promise<void> => {
@@ -110,27 +106,5 @@ export default class GitHubClient {
       }
     }
     return results;
-  }
-
-  public static downloadArtifact = async (artifactId: number): Promise<ArrayBuffer> => {
-    this.logger.info(`downloadArtifact: artifactId='${artifactId}' ...`);
-
-    return <ArrayBuffer>(await this.octokit.rest.actions.downloadArtifact({
-      ..._owner_repo, artifact_id: artifactId, archive_format: 'zip'
-    })
-    ).data;
-  };
-
-  public static cancelWorkflowRun = async (): Promise<void> => {
-    this.logger.info(`cancelWorkflowRun: run_id='${context.runId}' ...`);
-    try {
-      await this.octokit.rest.actions.cancelWorkflowRun({
-        owner: config.owner,
-        repo: config.repo,
-        run_id: context.runId
-      });
-    } catch (e: any) {
-      this.logger.error(`Cancel request failed: ${e.message}`);
-    }
   }
 }
