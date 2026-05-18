@@ -38,7 +38,6 @@ import * as fs from 'fs-extra';
 import JUnitParser from './reporting/JUnitParser.js';
 import { RunType } from './dto/RunType.js';
 import { checkoutRepo } from './utils/utils.js';
-import { AlmRunMode } from './dto/AlmRunMode.js';
 
 const logger: Logger = new Logger('eventHandler');
 const JUNIT_RES_XML = 'junit-results.xml';
@@ -109,8 +108,10 @@ export const handleCurrentEvent = async (): Promise<void> => {
     try {
       ({ propsFileName, xmlResFileName } = await FtTestExecuter.preProcess(runType, testOrTestSetPaths));
       const exitCode = await FtTestExecuter.process(propsFileName);
-      reportPaths = await buildJUnitReport(xmlResFileName);
-      await uploadArtifacts(propsFileName, xmlResFileName, reportPaths);
+      if (runType === RunType.FS || runType === RunType.FSParallel) {
+        reportPaths = await buildJUnitReport(xmlResFileName);
+        await uploadArtifacts(propsFileName, xmlResFileName, reportPaths);
+      }
       logger.info(`END run: ExitCode=${exitCode}.`);
       return exitCode;
     } catch (error) {
@@ -219,11 +220,13 @@ const uploadArtifacts = async (propsFileName: string, xmlResFileName: string, re
 const cleanupTempFiles = async (fileNames: string[]) => {
   logger.debug(`cleanupTempFiles: ${fileNames.join(', ')} ...`);
   await Promise.all(fileNames.map(async (fileName) => {
-    const fullPathFile = path.join(config.runnerWsPath, fileName);
-    try {
-      await fs.promises.rm(fullPathFile, { force: true });
-    } catch (error) {
-      logger.warn(`cleanupTempFiles: Failed to delete ${fullPathFile}: ${error}`);
+    if (fileName) {
+      const fullPathFile = path.join(config.runnerWsPath, fileName);
+      try {
+        await fs.promises.rm(fullPathFile, { force: true });
+      } catch (error) {
+        logger.warn(`cleanupTempFiles: Failed to delete ${fullPathFile}: ${error}`);
+      }
     }
   }));
 }
@@ -261,15 +264,14 @@ const validateAndGetRunType = (): RunType => {
   return runType;
 }
 const validateAlmRunMode = (): void => {
-  const raw = config.almRunMode; // e.g. "LOCAL", "REMOTE", "PLANNED_HOST"
-  logger.debug(`validateAlmRunMode: ${raw}`);
-  const allowedKeys = Object.keys(AlmRunMode).filter(k => isNaN(Number(k)));
-  if (!isNaN(Number(raw)) || !(raw in AlmRunMode)) {
-    throw new Error(`Invalid almRunMode value '${raw}'. Allowed: ${allowedKeys.join(', ')}`);
+  const runMode = config.almRunMode;
+  logger.debug(`validateAlmRunMode: ${runMode}`);
+  const allowedValues = ["LOCAL", "REMOTE", "PLANNED_HOST"];
+  if (!allowedValues.includes(runMode)) {
+    throw new Error(`Invalid almRunMode value '${runMode}'. Allowed: ${allowedValues.join(', ')}`);
   }
-  const almRunMode = AlmRunMode[raw as keyof typeof AlmRunMode];
-  if (almRunMode === AlmRunMode.REMOTE && !config.almRunHost) {
-    throw new Error(`almRunHost is required when almRunMode is '${raw}'`);
+  if (runMode === "REMOTE" && !config.almRunHost) {
+    throw new Error(`almRunHost is required when almRunMode is '${runMode}'`);
   }
 }
 

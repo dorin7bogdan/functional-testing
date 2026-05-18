@@ -34,7 +34,6 @@ import FTL from './FTL.js';
 import { checkFileExists, checkReadWriteAccess, escapePropVal, getTimestamp, toBase64 } from '../utils/utils.js';
 import { config } from '../config/config.js';
 import { RunType } from '../dto/RunType.js';
-import { AlmRunMode } from '../dto/AlmRunMode.js';
 
 const logger = new Logger('FtTestExecuter');
 
