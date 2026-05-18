@@ -76,12 +76,11 @@ export const handleCurrentEvent = async (): Promise<void> => {
   const workDir = process.cwd(); //.env.GITHUB_WORKSPACE || '.';
   logger.info(`Working directory: ${workDir}`);
 
-  await checkoutRepo(workDir);
-
   let testOrTestSetPaths: string[] = [];
   const runType = validateAndGetRunType();
   switch (runType) {
     case RunType.FS:
+      await checkoutRepo(workDir);
       testOrTestSetPaths = await validateAndGetTestPaths();
       break;
     case RunType.FSParallel:
@@ -263,6 +262,7 @@ const validateAndGetRunType = (): RunType => {
 }
 const validateAlmRunMode = (): void => {
   const raw = config.almRunMode; // e.g. "LOCAL", "REMOTE", "PLANNED_HOST"
+  logger.debug(`validateAlmRunMode: '${raw}'`);
   const almRunMode = AlmRunMode[raw as keyof typeof AlmRunMode];
   if (!almRunMode) {
     throw new Error(`Invalid almRunMode value '${raw}'. Allowed: ${Object.keys(AlmRunMode).join(', ')}`);
@@ -270,7 +270,6 @@ const validateAlmRunMode = (): void => {
   if (almRunMode === AlmRunMode.REMOTE && !config.almRunHost) {
     throw new Error(`almRunHost is required when almRunMode is '${raw}'`);
   }
-  logger.debug(`validateAlmRunMode: '${raw}'`);
 }
 
 const validateAndGetTestPaths = async (): Promise<string[]> => {

@@ -137016,11 +137016,11 @@ const handleCurrentEvent = async () => {
     eventHandler_logger.info(`Current repository URL: ${config.repoUrl}`);
     const workDir = process.cwd(); //.env.GITHUB_WORKSPACE || '.';
     eventHandler_logger.info(`Working directory: ${workDir}`);
-    await checkoutRepo(workDir);
     let testOrTestSetPaths = [];
     const runType = validateAndGetRunType();
     switch (runType) {
         case RunType.FS:
+            await checkoutRepo(workDir);
             testOrTestSetPaths = await validateAndGetTestPaths();
             break;
         case RunType.FSParallel:
@@ -137187,6 +137187,7 @@ const validateAndGetRunType = () => {
 };
 const validateAlmRunMode = () => {
     const raw = config.almRunMode; // e.g. "LOCAL", "REMOTE", "PLANNED_HOST"
+    eventHandler_logger.debug(`validateAlmRunMode: '${raw}'`);
     const almRunMode = AlmRunMode[raw];
     if (!almRunMode) {
         throw new Error(`Invalid almRunMode value '${raw}'. Allowed: ${Object.keys(AlmRunMode).join(', ')}`);
@@ -137194,7 +137195,6 @@ const validateAlmRunMode = () => {
     if (almRunMode === AlmRunMode.REMOTE && !config.almRunHost) {
         throw new Error(`almRunHost is required when almRunMode is '${raw}'`);
     }
-    eventHandler_logger.debug(`validateAlmRunMode: '${raw}'`);
 };
 const validateAndGetTestPaths = async () => {
     eventHandler_logger.debug("validateAndGetTestPaths: ...");
