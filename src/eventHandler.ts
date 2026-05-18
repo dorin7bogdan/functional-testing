@@ -111,6 +111,8 @@ export const handleCurrentEvent = async (): Promise<void> => {
       if (runType === RunType.FS || runType === RunType.FSParallel) {
         reportPaths = await buildJUnitReport(xmlResFileName);
         await uploadArtifacts(propsFileName, xmlResFileName, reportPaths);
+      } else if (runType === RunType.ALM) {
+        await uploadArtifact(propsFileName, "props-txt");
       }
       logger.info(`END run: ExitCode=${exitCode}.`);
       return exitCode;
@@ -200,9 +202,9 @@ const uploadArtifacts = async (propsFileName: string, xmlResFileName: string, re
   const rptArtifactNames = resolveRptArtifactNames(reportPaths);
 
   await Promise.all([
-    GitHubClient.uploadArtifact(config.runnerWsPath, propsFileName, "props-txt"),
-    GitHubClient.uploadArtifact(config.runnerWsPath, xmlResFileName, "summary-results-xml"),
-    GitHubClient.uploadArtifact(config.runnerWsPath, JUNIT_RES_XML, "junit-results-xml")
+    uploadArtifact(propsFileName, "props-txt"),
+    uploadArtifact(xmlResFileName, "summary-results-xml"),
+    uploadArtifact(JUNIT_RES_XML, "junit-results-xml")
   ]);
   if (config.archiveReportsAsSingleArtifact) {
     logger.debug(`uploadArtifacts: Archiving all reports as a single artifact "ft-reports" ...`);
@@ -211,10 +213,14 @@ const uploadArtifacts = async (propsFileName: string, xmlResFileName: string, re
     logger.debug(`uploadArtifacts: Archiving all reports as individual artifacts ...`);
     await Promise.all([
       ...reportPaths.map(p =>
-        GitHubClient.uploadArtifact(config.runnerWsPath, p, `${rptArtifactNames.get(p)!}`)
+        uploadArtifact(p, `${rptArtifactNames.get(p)!}`)
       )
     ]);
   }
+}
+
+const uploadArtifact = async (fileName: string, artifactName: string) => {
+  GitHubClient.uploadArtifact(config.runnerWsPath, fileName, artifactName);
 }
 
 const cleanupTempFiles = async (fileNames: string[]) => {

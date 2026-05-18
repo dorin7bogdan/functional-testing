@@ -137014,6 +137014,9 @@ const handleCurrentEvent = async () => {
                 reportPaths = await buildJUnitReport(xmlResFileName);
                 await uploadArtifacts(propsFileName, xmlResFileName, reportPaths);
             }
+            else if (runType === RunType.ALM) {
+                await eventHandler_uploadArtifact(propsFileName, "props-txt");
+            }
             eventHandler_logger.info(`END run: ExitCode=${exitCode}.`);
             return exitCode;
         }
@@ -137093,9 +137096,9 @@ const uploadArtifacts = async (propsFileName, xmlResFileName, reportPaths) => {
     eventHandler_logger.debug(`uploadArtifacts: "${propsFileName}", "${xmlResFileName}", reportPaths=${reportPaths.length} ...`);
     const rptArtifactNames = resolveRptArtifactNames(reportPaths);
     await Promise.all([
-        GitHubClient.uploadArtifact(config.runnerWsPath, propsFileName, "props-txt"),
-        GitHubClient.uploadArtifact(config.runnerWsPath, xmlResFileName, "summary-results-xml"),
-        GitHubClient.uploadArtifact(config.runnerWsPath, JUNIT_RES_XML, "junit-results-xml")
+        eventHandler_uploadArtifact(propsFileName, "props-txt"),
+        eventHandler_uploadArtifact(xmlResFileName, "summary-results-xml"),
+        eventHandler_uploadArtifact(JUNIT_RES_XML, "junit-results-xml")
     ]);
     if (config.archiveReportsAsSingleArtifact) {
         eventHandler_logger.debug(`uploadArtifacts: Archiving all reports as a single artifact "ft-reports" ...`);
@@ -137104,9 +137107,12 @@ const uploadArtifacts = async (propsFileName, xmlResFileName, reportPaths) => {
     else {
         eventHandler_logger.debug(`uploadArtifacts: Archiving all reports as individual artifacts ...`);
         await Promise.all([
-            ...reportPaths.map(p => GitHubClient.uploadArtifact(config.runnerWsPath, p, `${rptArtifactNames.get(p)}`))
+            ...reportPaths.map(p => eventHandler_uploadArtifact(p, `${rptArtifactNames.get(p)}`))
         ]);
     }
+};
+const eventHandler_uploadArtifact = async (fileName, artifactName) => {
+    GitHubClient.uploadArtifact(config.runnerWsPath, fileName, artifactName);
 };
 const cleanupTempFiles = async (fileNames) => {
     eventHandler_logger.debug(`cleanupTempFiles: ${fileNames.join(', ')} ...`);
