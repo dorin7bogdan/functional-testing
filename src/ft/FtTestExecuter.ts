@@ -34,11 +34,12 @@ import FTL from './FTL.js';
 import { checkFileExists, checkReadWriteAccess, escapePropVal, getTimestamp, toBase64 } from '../utils/utils.js';
 import { config } from '../config/config.js';
 import { RunType } from '../dto/RunType.js';
+import Encrypter from './Encrypter.js';
 
 const logger = new Logger('FtTestExecuter');
 
 export default class FtTestExecuter {
-  public static async preProcess(runType: RunType, testOrTestSetPaths: string[]): Promise<{ propsFileName: string, xmlResFileName: string }> {
+  public static async preProcess(runType: RunType, testOrTestSetPaths: string[]): Promise<{ propsFileName: string, xmlResFileName: string, encryptionKey: string }> {
     logger.debug(`preProcess ...`);
     await checkReadWriteAccess(config.runnerWsPath);
     const suffix = getTimestamp();
@@ -48,21 +49,21 @@ export default class FtTestExecuter {
     } else if (runType === RunType.ALM) {
       return await this.createAlmProps(FTL.Alm, suffix, testOrTestSetPaths);
     }
-    return { propsFileName: '', xmlResFileName: '' };
+    return { propsFileName: '', xmlResFileName: '', encryptionKey: '' };
   }
 
-  public static async process(propsFileName: string): Promise<ExitCode> {
+  public static async process(propsFileName: string, encryptionKey: string): Promise<ExitCode> {
     logger.debug(`process: propsFileName = "${propsFileName}" ...`);
     const propsFullPath = path.join(config.runnerWsPath, propsFileName);
     await checkFileExists(propsFullPath);
     await checkReadWriteAccess(config.runnerWsPath);
     await FTL.ensureToolExists();
-    const exitCode = await FTL.runTool(propsFullPath);
+    const exitCode = await FTL.runTool(propsFullPath, encryptionKey);
     logger.debug(`process: exitCode=${exitCode}`);
     return exitCode;
   }
 
-  private static async createFSProps(runtype: string, suffix: string, testPaths: string[], isParallel: boolean = false): Promise<{ propsFileName: string, xmlResFileName: string }> {
+  private static async createFSProps(runtype: string, suffix: string, testPaths: string[], isParallel: boolean = false): Promise<{ propsFileName: string, xmlResFileName: string, encryptionKey: string }> {
     const propsFileName = `props_${suffix}.txt`;
     const xmlResFileName = `results_${suffix}.xml`;
     const propsFullPath = path.join(config.runnerWsPath, propsFileName);
@@ -87,25 +88,27 @@ export default class FtTestExecuter {
     }*/
     await this.writePropsFile(props, propsFullPath);
 
-    return { propsFileName, xmlResFileName };
+    return { propsFileName, xmlResFileName, encryptionKey: '' };
   }
 
-  private static async createAlmProps(runtype: string, suffix: string, testSets: string[]): Promise<{ propsFileName: string, xmlResFileName: string }> {
+  private static async createAlmProps(runtype: string, suffix: string, testSets: string[]): Promise<{ propsFileName: string, xmlResFileName: string, encryptionKey: string }> {
     const propsFileName = `props_${suffix}.txt`;
     const xmlResFileName = `results_${suffix}.xml`;
     const propsFullPath = path.join(config.runnerWsPath, propsFileName);
     logger.debug(`createAlmProps: "${propsFileName}" ...`);
+    const isSSO = config.almSSOEnabled;
+    const enc = new Encrypter();
 
     const props: { [key: string]: string } = {
       runType: runtype,
       almServerUrl: config.almServerUrl,
       almUsername: config.almUsername,
-      almPasswordBasicAuth: toBase64(config.almPassword),
+      almPassword: isSSO ? "" : enc.encrypt(config.almPassword),
       almDomain: config.almDomain,
       almProject: config.almProject,
       SSOEnabled: `${config.almSSOEnabled}`,
       almClientId: config.almClientId,
-      almApiKeySecretBasicAuth: toBase64(config.almApiKeySecret),
+      almApiKeySecret: isSSO ? enc.encrypt(config.almApiKeySecret) : "",
       almRunMode: `RUN_${config.almRunMode}`,
       almRunHost: config.almRunHost,
       almTimeout: `${config.almTimeout}`,
@@ -119,7 +122,7 @@ export default class FtTestExecuter {
     }
 
     await this.writePropsFile(props, propsFullPath);
-    return { propsFileName, xmlResFileName };
+    return { propsFileName, xmlResFileName, encryptionKey: enc.key };
   }
 
   private static async writePropsFile(props: { [key: string]: string }, propsFullPath: string): Promise<void> {

@@ -135975,40 +135975,49 @@ class FTL {
             throw new Error(err);
         }
     }
-    static async runTool(propsFullPath) {
+    static async runTool(propsFullPath, encryptionKey) {
         FTL_logger.debug(`runTool: propsFullPath="${propsFullPath}" ...`);
         const args = ['-paramfile', propsFullPath];
+        if (encryptionKey) {
+            return await this.spawnTool(['--use-stdin-key', ...args], encryptionKey);
+        }
+        else {
+            return await this.spawnTool(args);
+        }
+    }
+    static async spawnTool(args, stdinData) {
         try {
             FTL_logger.info(`${FTL_EXE} ${args.join(' ')}`);
             return await new Promise((resolve, reject) => {
-                const launcher = (0,external_child_process_namespaceObject.spawn)(FTL_EXE, args, {
-                    stdio: ['ignore', 'pipe', 'pipe'],
-                    cwd: config.runnerWsPath, // Set working directory to temp folder
+                const proc = (0,external_child_process_namespaceObject.spawn)(FTL_EXE, args, {
+                    stdio: [stdinData ? 'pipe' : 'ignore', 'pipe', 'pipe'],
+                    cwd: config.runnerWsPath
                 });
-                launcher.stdout.on('data', (data) => {
+                if (stdinData) {
+                    proc.stdin.write(stdinData);
+                    proc.stdin.end('\n');
+                }
+                proc.stdout.on('data', (data) => {
                     const msg = data?.toString().trim();
                     msg && FTL_logger.info(msg);
                 });
-                launcher.stderr.on('data', (data) => {
+                proc.stderr.on('data', (data) => {
                     const err = data?.toString().trim();
                     err && FTL_logger.error(err);
                 });
-                launcher.on('error', (error) => {
-                    reject(new Error(`Failed to start FTTollsLauncher: ${error.message}`));
+                proc.on('error', (error) => {
+                    reject(new Error(`Failed to start FTToolsLauncher: ${error.message}`));
                 });
-                launcher.on('close', (code) => {
+                proc.on('close', (code) => {
                     // Node.js returns unsigned 32-bit for negative codes (e.g., -2 => 4294967294)
                     // Normalize to signed 32-bit integer
-                    let normalizedCode;
-                    if (typeof code === 'number') {
-                        normalizedCode = code > 0x7FFFFFFF ? code - 0x100000000 : code;
-                    }
-                    else {
-                        FTL_logger.error('runTool: Process exited with null code (possibly killed by signal)');
-                        resolve(ExitCode_ExitCode.Aborted); // or another appropriate value
+                    if (typeof code !== 'number') {
+                        FTL_logger.error('spawnTool: Process exited with null code (possibly killed by signal)');
+                        resolve(ExitCode_ExitCode.Aborted);
                         return;
                     }
-                    FTL_logger.debug(`runTool: ExitCode=${normalizedCode}`);
+                    const normalizedCode = code > 0x7FFFFFFF ? code - 0x100000000 : code;
+                    FTL_logger.debug(`spawnTool: ExitCode=${normalizedCode}`);
                     const exitCode = Object.values(ExitCode_ExitCode).includes(normalizedCode)
                         ? normalizedCode
                         : ExitCode_ExitCode.Unknown;
@@ -136017,8 +136026,8 @@ class FTL {
             });
         }
         catch (error) {
-            FTL_logger.error(`runTool: ${error.message}`);
-            throw new Error(`Failed to run FTTollsLauncher: ${error.message}`);
+            FTL_logger.error(`spawnTool: ${error.message}`);
+            throw new Error(`Failed to run FTToolsLauncher: ${error.message}`);
         }
     }
 }
@@ -136351,6 +136360,36 @@ var RunType;
     RunType[RunType["ALMLab"] = 3] = "ALMLab";
 })(RunType || (RunType = {}));
 
+;// CONCATENATED MODULE: ./src/ft/Encrypter.ts
+
+class Encrypter {
+    _keyBase64;
+    constructor() {
+        // 64 bytes -> 32 AES + 32 HMAC
+        this._keyBase64 = (0,external_crypto_namespaceObject.randomBytes)(64).toString('base64');
+    }
+    /** Key to send via stdin or env */
+    get key() {
+        return this._keyBase64;
+    }
+    encrypt(text) {
+        const key = Buffer.from(this._keyBase64, 'base64');
+        const aesKey = key.subarray(0, 32);
+        const hmacKey = key.subarray(32);
+        const iv = (0,external_crypto_namespaceObject.randomBytes)(16);
+        const cipher = (0,external_crypto_namespaceObject.createCipheriv)('aes-256-cbc', aesKey, iv);
+        const ciphertext = Buffer.concat([
+            cipher.update(text, 'utf8'),
+            cipher.final()
+        ]);
+        const data = Buffer.concat([iv, ciphertext]);
+        const hmac = (0,external_crypto_namespaceObject.createHmac)('sha256', hmacKey)
+            .update(data)
+            .digest();
+        return Buffer.concat([data, hmac]).toString('base64');
+    }
+}
+
 ;// CONCATENATED MODULE: ./src/ft/FtTestExecuter.ts
 /*
  * Copyright 2026 Open Text.
@@ -136387,6 +136426,7 @@ var RunType;
 
 
 
+
 const FtTestExecuter_logger = new Logger('FtTestExecuter');
 class FtTestExecuter {
     static async preProcess(runType, testOrTestSetPaths) {
@@ -136400,15 +136440,15 @@ class FtTestExecuter {
         else if (runType === RunType.ALM) {
             return await this.createAlmProps(FTL.Alm, suffix, testOrTestSetPaths);
         }
-        return { propsFileName: '', xmlResFileName: '' };
+        return { propsFileName: '', xmlResFileName: '', encryptionKey: '' };
     }
-    static async process(propsFileName) {
+    static async process(propsFileName, encryptionKey) {
         FtTestExecuter_logger.debug(`process: propsFileName = "${propsFileName}" ...`);
         const propsFullPath = external_path_.join(config.runnerWsPath, propsFileName);
         await checkFileExists(propsFullPath);
         await checkReadWriteAccess(config.runnerWsPath);
         await FTL.ensureToolExists();
-        const exitCode = await FTL.runTool(propsFullPath);
+        const exitCode = await FTL.runTool(propsFullPath, encryptionKey);
         FtTestExecuter_logger.debug(`process: exitCode=${exitCode}`);
         return exitCode;
     }
@@ -136433,23 +136473,25 @@ class FtTestExecuter {
               props["MobileExecToken"] = config.labExecToken;
             }*/
         await this.writePropsFile(props, propsFullPath);
-        return { propsFileName, xmlResFileName };
+        return { propsFileName, xmlResFileName, encryptionKey: '' };
     }
     static async createAlmProps(runtype, suffix, testSets) {
         const propsFileName = `props_${suffix}.txt`;
         const xmlResFileName = `results_${suffix}.xml`;
         const propsFullPath = external_path_.join(config.runnerWsPath, propsFileName);
         FtTestExecuter_logger.debug(`createAlmProps: "${propsFileName}" ...`);
+        const isSSO = config.almSSOEnabled;
+        const enc = new Encrypter();
         const props = {
             runType: runtype,
             almServerUrl: config.almServerUrl,
             almUsername: config.almUsername,
-            almPasswordBasicAuth: toBase64(config.almPassword),
+            almPassword: isSSO ? "" : enc.encrypt(config.almPassword),
             almDomain: config.almDomain,
             almProject: config.almProject,
             SSOEnabled: `${config.almSSOEnabled}`,
             almClientId: config.almClientId,
-            almApiKeySecretBasicAuth: toBase64(config.almApiKeySecret),
+            almApiKeySecret: isSSO ? enc.encrypt(config.almApiKeySecret) : "",
             almRunMode: `RUN_${config.almRunMode}`,
             almRunHost: config.almRunHost,
             almTimeout: `${config.almTimeout}`,
@@ -136462,7 +136504,7 @@ class FtTestExecuter {
             props[key] = escapePropVal(testSets[i]);
         }
         await this.writePropsFile(props, propsFullPath);
-        return { propsFileName, xmlResFileName };
+        return { propsFileName, xmlResFileName, encryptionKey: enc.key };
     }
     static async writePropsFile(props, propsFullPath) {
         try {
@@ -137006,10 +137048,11 @@ const handleCurrentEvent = async () => {
         eventHandler_logger.debug(`BEGIN run: ...`);
         let propsFileName;
         let xmlResFileName;
+        let encryptionKey;
         let reportPaths = [];
         try {
-            ({ propsFileName, xmlResFileName } = await FtTestExecuter.preProcess(runType, testOrTestSetPaths));
-            const exitCode = await FtTestExecuter.process(propsFileName);
+            ({ propsFileName, xmlResFileName, encryptionKey } = await FtTestExecuter.preProcess(runType, testOrTestSetPaths));
+            const exitCode = await FtTestExecuter.process(propsFileName, encryptionKey);
             if (runType === RunType.FS || runType === RunType.FSParallel) {
                 reportPaths = await buildJUnitReport(xmlResFileName);
                 await uploadArtifacts(propsFileName, xmlResFileName, reportPaths);

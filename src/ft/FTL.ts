@@ -84,45 +84,55 @@ export default class FTL {
       throw new Error(err);
     }
   }
-  public static async runTool(propsFullPath: string): Promise<ExitCode> {
+  public static async runTool(propsFullPath: string, encryptionKey: string): Promise<ExitCode> {
     logger.debug(`runTool: propsFullPath="${propsFullPath}" ...`);
-
     const args = ['-paramfile', propsFullPath];
+    if (encryptionKey) {
+      return await this.spawnTool(['--use-stdin-key', ...args], encryptionKey);
+    } else {
+      return await this.spawnTool(args);
+    }
+  }
+
+  private static async spawnTool(args: string[], stdinData?: string): Promise<ExitCode> {
     try {
       logger.info(`${FTL_EXE} ${args.join(' ')}`);
 
       return await new Promise<ExitCode>((resolve, reject) => {
-        const launcher = spawn(FTL_EXE, args, {
-          stdio: ['ignore', 'pipe', 'pipe'],
-          cwd: config.runnerWsPath, // Set working directory to temp folder
+        const proc = spawn(FTL_EXE, args, {
+          stdio: [stdinData ? 'pipe' : 'ignore', 'pipe', 'pipe'],
+          cwd: config.runnerWsPath
         });
-        launcher.stdout.on('data', (data) => {
+
+        if (stdinData) {
+          proc.stdin!.write(stdinData);
+          proc.stdin!.end('\n');
+        }
+
+        proc.stdout!.on('data', (data) => {
           const msg = data?.toString().trim();
           msg && logger.info(msg);
         });
 
-        launcher.stderr.on('data', (data) => {
+        proc.stderr!.on('data', (data) => {
           const err = data?.toString().trim();
           err && logger.error(err);
         });
 
-        launcher.on('error', (error) => {
-          reject(new Error(`Failed to start FTTollsLauncher: ${error.message}`));
+        proc.on('error', (error) => {
+          reject(new Error(`Failed to start FTToolsLauncher: ${error.message}`));
         });
 
-        launcher.on('close', (code) => {
+        proc.on('close', (code) => {
           // Node.js returns unsigned 32-bit for negative codes (e.g., -2 => 4294967294)
           // Normalize to signed 32-bit integer
-          let normalizedCode: number;
-          if (typeof code === 'number') {
-            normalizedCode = code > 0x7FFFFFFF ? code - 0x100000000 : code;
-          } else {
-            logger.error('runTool: Process exited with null code (possibly killed by signal)');
-            resolve(ExitCode.Aborted); // or another appropriate value
+          if (typeof code !== 'number') {
+            logger.error('spawnTool: Process exited with null code (possibly killed by signal)');
+            resolve(ExitCode.Aborted);
             return;
           }
-
-          logger.debug(`runTool: ExitCode=${normalizedCode}`);
+          const normalizedCode = code > 0x7FFFFFFF ? code - 0x100000000 : code;
+          logger.debug(`spawnTool: ExitCode=${normalizedCode}`);
           const exitCode = Object.values(ExitCode).includes(normalizedCode)
             ? (normalizedCode as ExitCode)
             : ExitCode.Unknown;
@@ -130,8 +140,8 @@ export default class FTL {
         });
       });
     } catch (error: any) {
-      logger.error(`runTool: ${error.message}`);
-      throw new Error(`Failed to run FTTollsLauncher: ${error.message}`);
+      logger.error(`spawnTool: ${error.message}`);
+      throw new Error(`Failed to run FTToolsLauncher: ${error.message}`);
     }
   }
 }

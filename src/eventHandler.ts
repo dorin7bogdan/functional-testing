@@ -104,10 +104,11 @@ export const handleCurrentEvent = async (): Promise<void> => {
     logger.debug(`BEGIN run: ...`);
     let propsFileName: string | undefined;
     let xmlResFileName: string | undefined;
+    let encryptionKey: string | undefined;
     let reportPaths: string[] = [];
     try {
-      ({ propsFileName, xmlResFileName } = await FtTestExecuter.preProcess(runType, testOrTestSetPaths));
-      const exitCode = await FtTestExecuter.process(propsFileName);
+      ({ propsFileName, xmlResFileName, encryptionKey } = await FtTestExecuter.preProcess(runType, testOrTestSetPaths));
+      const exitCode = await FtTestExecuter.process(propsFileName, encryptionKey);
       if (runType === RunType.FS || runType === RunType.FSParallel) {
         reportPaths = await buildJUnitReport(xmlResFileName);
         await uploadArtifacts(propsFileName, xmlResFileName, reportPaths);
