@@ -221,7 +221,7 @@ const uploadArtifacts = async (propsFileName: string, xmlResFileName: string, re
 }
 
 const uploadArtifact = async (fileName: string, artifactName: string) => {
-  GitHubClient.uploadArtifact(config.runnerWsPath, fileName, artifactName);
+  await GitHubClient.uploadArtifact(config.runnerWsPath, fileName, artifactName);
 }
 
 const cleanupTempFiles = async (fileNames: string[]) => {

@@ -137163,7 +137163,7 @@ const uploadArtifacts = async (propsFileName, xmlResFileName, reportPaths) => {
     }
 };
 const eventHandler_uploadArtifact = async (fileName, artifactName) => {
-    GitHubClient.uploadArtifact(config.runnerWsPath, fileName, artifactName);
+    await GitHubClient.uploadArtifact(config.runnerWsPath, fileName, artifactName);
 };
 const cleanupTempFiles = async (fileNames) => {
     eventHandler_logger.debug(`cleanupTempFiles: ${fileNames.join(', ')} ...`);
