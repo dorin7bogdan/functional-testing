@@ -1,5 +1,6 @@
 import { randomBytes, createCipheriv, createHmac } from 'crypto';
 
+/** Single-use: create once, encrypt all values, pass key to launcher, then discard it. */
 export default class Encrypter {
   private readonly _keyBase64: string;
 
@@ -8,7 +9,11 @@ export default class Encrypter {
     this._keyBase64 = randomBytes(64).toString('base64');
   }
 
-  /** Key to send via stdin or env */
+  /** 
+   * The full 64-byte base64 key (32 AES + 32 HMAC).
+   * Treat as a secret — pass to the launcher once via stdin, then discard.
+   * Never log this value.
+   */
   public get key(): string {
     return this._keyBase64;
   }

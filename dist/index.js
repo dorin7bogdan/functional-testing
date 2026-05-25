@@ -135985,16 +135985,19 @@ class FTL {
             return await this.spawnTool(args);
         }
     }
-    static async spawnTool(args, stdinData) {
+    static async spawnTool(args, encryptionKey) {
         try {
             FTL_logger.info(`${FTL_EXE} ${args.join(' ')}`);
             return await new Promise((resolve, reject) => {
+                const stdin = encryptionKey ? 'pipe' : 'ignore';
+                const stdout = 'pipe';
+                const stderr = 'pipe';
                 const proc = (0,external_child_process_namespaceObject.spawn)(FTL_EXE, args, {
-                    stdio: [stdinData ? 'pipe' : 'ignore', 'pipe', 'pipe'],
+                    stdio: [stdin, stdout, stderr],
                     cwd: config.runnerWsPath
                 });
-                if (stdinData) {
-                    proc.stdin.write(stdinData);
+                if (encryptionKey) {
+                    proc.stdin.write(encryptionKey);
                     proc.stdin.end('\n');
                 }
                 proc.stdout.on('data', (data) => {
@@ -136362,13 +136365,18 @@ var RunType;
 
 ;// CONCATENATED MODULE: ./src/ft/Encrypter.ts
 
+/** Single-use: create once, encrypt all values, pass key to launcher, then discard it. */
 class Encrypter {
     _keyBase64;
     constructor() {
         // 64 bytes -> 32 AES + 32 HMAC
         this._keyBase64 = (0,external_crypto_namespaceObject.randomBytes)(64).toString('base64');
     }
-    /** Key to send via stdin or env */
+    /**
+     * The full 64-byte base64 key (32 AES + 32 HMAC).
+     * Treat as a secret � pass to the launcher once via stdin, then discard.
+     * Never log this value.
+     */
     get key() {
         return this._keyBase64;
     }

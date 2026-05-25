@@ -94,18 +94,22 @@ export default class FTL {
     }
   }
 
-  private static async spawnTool(args: string[], stdinData?: string): Promise<ExitCode> {
+  private static async spawnTool(args: string[], encryptionKey?: string): Promise<ExitCode> {
     try {
       logger.info(`${FTL_EXE} ${args.join(' ')}`);
 
       return await new Promise<ExitCode>((resolve, reject) => {
+        const stdin = encryptionKey ? 'pipe' : 'ignore' as const;
+        const stdout = 'pipe' as const;
+        const stderr = 'pipe' as const;
+
         const proc = spawn(FTL_EXE, args, {
-          stdio: [stdinData ? 'pipe' : 'ignore', 'pipe', 'pipe'],
+          stdio: [stdin, stdout, stderr],
           cwd: config.runnerWsPath
         });
 
-        if (stdinData) {
-          proc.stdin!.write(stdinData);
+        if (encryptionKey) {
+          proc.stdin!.write(encryptionKey);
           proc.stdin!.end('\n');
         }
 
