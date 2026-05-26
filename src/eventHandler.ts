@@ -109,12 +109,8 @@ export const handleCurrentEvent = async (): Promise<void> => {
     try {
       ({ propsFileName, xmlResFileName, encryptionKey } = await FtTestExecuter.preProcess(runType, testOrTestSetPaths));
       const exitCode = await FtTestExecuter.process(propsFileName, encryptionKey);
-      if (runType === RunType.FS || runType === RunType.FSParallel) {
-        reportPaths = await buildJUnitReport(xmlResFileName);
-        await uploadArtifacts(propsFileName, xmlResFileName, reportPaths);
-      } else if (runType === RunType.ALM) {
-        await uploadArtifact(propsFileName, "props-txt");
-      }
+      reportPaths = await buildJUnitReport(xmlResFileName);
+      await uploadArtifacts(propsFileName, xmlResFileName, reportPaths);
       logger.info(`END run: ExitCode=${exitCode}.`);
       return exitCode;
     } catch (error) {
@@ -207,16 +203,18 @@ const uploadArtifacts = async (propsFileName: string, xmlResFileName: string, re
     uploadArtifact(xmlResFileName, "summary-results-xml"),
     uploadArtifact(JUNIT_RES_XML, "junit-results-xml")
   ]);
-  if (config.archiveReportsAsSingleArtifact) {
-    logger.debug(`uploadArtifacts: Archiving all reports as a single artifact "ft-reports" ...`);
-    await GitHubClient.uploadArtifacts(config.runnerWsPath, reportPaths, "ft-reports")
-  } else {
-    logger.debug(`uploadArtifacts: Archiving all reports as individual artifacts ...`);
-    await Promise.all([
-      ...reportPaths.map(p =>
-        uploadArtifact(p, `${rptArtifactNames.get(p)!}`)
-      )
-    ]);
+  if (reportPaths.length) {
+    if (config.archiveReportsAsSingleArtifact) {
+      logger.debug(`uploadArtifacts: Archiving all reports as a single artifact "ft-reports" ...`);
+      await GitHubClient.uploadArtifacts(config.runnerWsPath, reportPaths, "ft-reports")
+    } else {
+      logger.debug(`uploadArtifacts: Archiving all reports as individual artifacts ...`);
+      await Promise.all([
+        ...reportPaths.map(p =>
+          uploadArtifact(p, `${rptArtifactNames.get(p)!}`)
+        )
+      ]);
+    }
   }
 }
 

@@ -136503,9 +136503,7 @@ class FtTestExecuter {
             almRunMode: `RUN_${config.almRunMode}`,
             almRunHost: config.almRunHost,
             almTimeout: `${config.almTimeout}`,
-            resultsFilename: xmlResFileName,
-            resultTestNameOnly: `${config.resultTestNameOnly}`, // TODO review is applicable for ALM run?
-            resultUnifiedTestClassname: `${config.resultUnifiedTestClassname}` // TODO review is applicable for ALM run?
+            resultsFilename: xmlResFileName
         };
         for (let i = 0; i < testSets.length; i++) {
             const key = `TestSet${i + 1}`;
@@ -137061,13 +137059,8 @@ const handleCurrentEvent = async () => {
         try {
             ({ propsFileName, xmlResFileName, encryptionKey } = await FtTestExecuter.preProcess(runType, testOrTestSetPaths));
             const exitCode = await FtTestExecuter.process(propsFileName, encryptionKey);
-            if (runType === RunType.FS || runType === RunType.FSParallel) {
-                reportPaths = await buildJUnitReport(xmlResFileName);
-                await uploadArtifacts(propsFileName, xmlResFileName, reportPaths);
-            }
-            else if (runType === RunType.ALM) {
-                await eventHandler_uploadArtifact(propsFileName, "props-txt");
-            }
+            reportPaths = await buildJUnitReport(xmlResFileName);
+            await uploadArtifacts(propsFileName, xmlResFileName, reportPaths);
             eventHandler_logger.info(`END run: ExitCode=${exitCode}.`);
             return exitCode;
         }
@@ -137151,15 +137144,17 @@ const uploadArtifacts = async (propsFileName, xmlResFileName, reportPaths) => {
         eventHandler_uploadArtifact(xmlResFileName, "summary-results-xml"),
         eventHandler_uploadArtifact(JUNIT_RES_XML, "junit-results-xml")
     ]);
-    if (config.archiveReportsAsSingleArtifact) {
-        eventHandler_logger.debug(`uploadArtifacts: Archiving all reports as a single artifact "ft-reports" ...`);
-        await GitHubClient.uploadArtifacts(config.runnerWsPath, reportPaths, "ft-reports");
-    }
-    else {
-        eventHandler_logger.debug(`uploadArtifacts: Archiving all reports as individual artifacts ...`);
-        await Promise.all([
-            ...reportPaths.map(p => eventHandler_uploadArtifact(p, `${rptArtifactNames.get(p)}`))
-        ]);
+    if (reportPaths.length) {
+        if (config.archiveReportsAsSingleArtifact) {
+            eventHandler_logger.debug(`uploadArtifacts: Archiving all reports as a single artifact "ft-reports" ...`);
+            await GitHubClient.uploadArtifacts(config.runnerWsPath, reportPaths, "ft-reports");
+        }
+        else {
+            eventHandler_logger.debug(`uploadArtifacts: Archiving all reports as individual artifacts ...`);
+            await Promise.all([
+                ...reportPaths.map(p => eventHandler_uploadArtifact(p, `${rptArtifactNames.get(p)}`))
+            ]);
+        }
     }
 };
 const eventHandler_uploadArtifact = async (fileName, artifactName) => {

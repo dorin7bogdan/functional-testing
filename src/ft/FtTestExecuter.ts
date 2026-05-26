@@ -112,9 +112,7 @@ export default class FtTestExecuter {
       almRunMode: `RUN_${config.almRunMode}`,
       almRunHost: config.almRunHost,
       almTimeout: `${config.almTimeout}`,
-      resultsFilename: xmlResFileName,
-      resultTestNameOnly: `${config.resultTestNameOnly}`, // TODO review is applicable for ALM run?
-      resultUnifiedTestClassname: `${config.resultUnifiedTestClassname}` // TODO review is applicable for ALM run?
+      resultsFilename: xmlResFileName
     };
     for (let i = 0; i < testSets.length; i++) {
       const key = `TestSet${i + 1}`;
