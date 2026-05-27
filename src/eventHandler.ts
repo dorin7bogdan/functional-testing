@@ -85,8 +85,7 @@ export const handleCurrentEvent = async (): Promise<void> => {
     case RunType.FSParallel:
       throw new Error(`Not yet implemented, runType: ${runType}`);
     case RunType.ALM:
-      validateAlmRunMode();
-      validateTestSets();
+      validateAlmProps();
       testOrTestSetPaths = config.almTestSets;
       break;
     case RunType.ALMLab:
@@ -268,15 +267,45 @@ const validateAndGetRunType = (): RunType => {
   logger.debug(`validateAndGetRunType: '${raw}' => RunType.${RunType[runType]}`);
   return runType;
 }
-const validateAlmRunMode = (): void => {
+const validateAlmProps = (): void => {
+  logger.debug(`validateAlmProps ...`);
+
+  if (!config.almTestSets || config.almTestSets.length === 0) {
+    throw new Error(`Missing almTestSets value`);
+  }
+
   const runMode = config.almRunMode;
-  logger.debug(`validateAlmRunMode: ${runMode}`);
-  const allowedValues = ["LOCAL", "REMOTE", "PLANNED_HOST"];
-  if (!allowedValues.includes(runMode)) {
-    throw new Error(`Invalid almRunMode value '${runMode}'. Allowed: ${allowedValues.join(', ')}`);
+  const allowedModes = ["LOCAL", "REMOTE", "PLANNED_HOST"];
+  if (!allowedModes.includes(runMode)) {
+    throw new Error(`Invalid almRunMode value '${runMode}'. Allowed: ${allowedModes.join(', ')}`);
   }
   if (runMode === "REMOTE" && !config.almRunHost) {
     throw new Error(`almRunHost is required when almRunMode is '${runMode}'`);
+  }
+
+  const urlPattern = /^https?:\/\/[^\/]+\/qcbin\/?$/i;
+  if (!urlPattern.test(config.almServerUrl)) {
+    throw new Error(`Invalid almServerUrl value '${config.almServerUrl}'. Expected format: http(s)://{hostname-or-ip}[:{port}]/qcbin`);
+  }
+  if (config.almSSOEnabled) {
+    if (!config.almClientId)
+      throw new Error(`almClientId is required when almSSOEnabled is true`);
+    if (!config.almApiKeySecret)
+      throw new Error(`almApiKeySecret is required when almSSOEnabled is true`);
+  } else if (!config.almUsername) {
+    throw new Error(`almUsername is required when almSSOEnabled is false`);
+  }
+  if (!config.almDomain) {
+    throw new Error(`almDomain is required`);
+  }
+  if (!config.almProject) {
+    throw new Error(`almProject is required`);
+  }
+
+  const criteria = config.almTestSetRunOrderByCriteria;
+  const allowedCriterias = ["NAME", "ID"];
+  if (!allowedCriterias.includes(criteria)) {
+    throw new Error(`Invalid almTestSetRunOrderByCriteria value '${criteria}'. Allowed: ${allowedCriterias.join(', ')}`);
   }
 }
 
@@ -305,20 +334,11 @@ const validateAndGetTestPaths = async (): Promise<string[]> => {
   return testPaths;
 }
 
-const validateTestSets = (): void => {
-  logger.debug("validateAndGetTestSets: ...");
-
-  if (!config.almTestSets || config.almTestSets.length === 0) {
-    throw new Error(`Missing almTestSets value`);
-  }
-  return;
-}
-
 const buildJUnitReport = async (xmlResFileName: string): Promise<string[]> => {
   logger.info(`buildJUnitReport: from "${xmlResFileName}" ...`);
   const parser = new JUnitParser(xmlResFileName);
   const junitRes = await parser.parseResult();
-  logger.debug(`buildJUnitReport: parsed ${junitRes.suites.length} suites.`); 
+  logger.debug(`buildJUnitReport: parsed ${junitRes.suites.length} suites.`);
   const reportPaths: string[] = junitRes.suites
     .flatMap(suite => suite.cases)
     .map(c => c.reportPath)

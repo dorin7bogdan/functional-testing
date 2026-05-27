@@ -51,6 +51,7 @@ interface Config {
   almApiKeySecret: string;
   almRunMode: string;
   almRunHost: string;
+  almTestSetRunOrderByCriteria: string;
   almTimeout: number;
   owner: string;
   repo: string;
@@ -121,6 +122,7 @@ try {
     almApiKeySecret: getInput('almApiKeySecret'),
     almRunMode: getInput('almRunMode').toUpperCase(),
     almRunHost: getInput('almRunHost'),
+    almTestSetRunOrderByCriteria: getInput('almTestSetRunOrderByCriteria'),
     almTimeout: Number.parseInt(getInput('almTimeout')),
     owner: owner,
     repo: repo,

@@ -76,6 +76,10 @@ inputs:
   almRunHost:
     description: 'Required and used only if almRunMode is "REMOTE". The hostname or IP address of the machine which to run the ALM tests on.'
     required: false
+  almTestSetRunOrderByCriteria:
+    description: 'The criteria which the test sets are ordered to run by. Possible values: "ID", "NAME". Default is "ID".'
+    required: false
+    default: "ID"
   almTimeout:
     description: 'The number of seconds before the ALM test run times out. Default = -1 (no timeout)'
     required: false

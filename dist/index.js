@@ -89029,6 +89029,7 @@ try {
         almApiKeySecret: getInput('almApiKeySecret'),
         almRunMode: getInput('almRunMode').toUpperCase(),
         almRunHost: getInput('almRunHost'),
+        almTestSetRunOrderByCriteria: getInput('almTestSetRunOrderByCriteria'),
         almTimeout: Number.parseInt(getInput('almTimeout')),
         owner: owner,
         repo: repo,
@@ -136502,8 +136503,11 @@ class FtTestExecuter {
             almApiKeySecret: isSSO ? enc.encrypt(config.almApiKeySecret) : "",
             almRunMode: `RUN_${config.almRunMode}`,
             almRunHost: config.almRunHost,
+            almTestSetRunOrderByCriteria: config.almTestSetRunOrderByCriteria,
             almTimeout: `${config.almTimeout}`,
-            resultsFilename: xmlResFileName
+            resultsFilename: xmlResFileName,
+            resultTestNameOnly: `${config.resultTestNameOnly}`,
+            resultUnifiedTestClassname: `${config.resultUnifiedTestClassname}`
         };
         for (let i = 0; i < testSets.length; i++) {
             const key = `TestSet${i + 1}`;
@@ -137037,8 +137041,7 @@ const handleCurrentEvent = async () => {
         case RunType.FSParallel:
             throw new Error(`Not yet implemented, runType: ${runType}`);
         case RunType.ALM:
-            validateAlmRunMode();
-            validateTestSets();
+            validateAlmProps();
             testOrTestSetPaths = config.almTestSets;
             break;
         case RunType.ALMLab:
@@ -137204,15 +137207,42 @@ const validateAndGetRunType = () => {
     eventHandler_logger.debug(`validateAndGetRunType: '${raw}' => RunType.${RunType[runType]}`);
     return runType;
 };
-const validateAlmRunMode = () => {
+const validateAlmProps = () => {
+    eventHandler_logger.debug(`validateAlmProps ...`);
+    if (!config.almTestSets || config.almTestSets.length === 0) {
+        throw new Error(`Missing almTestSets value`);
+    }
     const runMode = config.almRunMode;
-    eventHandler_logger.debug(`validateAlmRunMode: ${runMode}`);
-    const allowedValues = ["LOCAL", "REMOTE", "PLANNED_HOST"];
-    if (!allowedValues.includes(runMode)) {
-        throw new Error(`Invalid almRunMode value '${runMode}'. Allowed: ${allowedValues.join(', ')}`);
+    const allowedModes = ["LOCAL", "REMOTE", "PLANNED_HOST"];
+    if (!allowedModes.includes(runMode)) {
+        throw new Error(`Invalid almRunMode value '${runMode}'. Allowed: ${allowedModes.join(', ')}`);
     }
     if (runMode === "REMOTE" && !config.almRunHost) {
         throw new Error(`almRunHost is required when almRunMode is '${runMode}'`);
+    }
+    const urlPattern = /^https?:\/\/[^\/]+\/qcbin\/?$/i;
+    if (!urlPattern.test(config.almServerUrl)) {
+        throw new Error(`Invalid almServerUrl value '${config.almServerUrl}'. Expected format: http(s)://{hostname-or-ip}[:{port}]/qcbin`);
+    }
+    if (config.almSSOEnabled) {
+        if (!config.almClientId)
+            throw new Error(`almClientId is required when almSSOEnabled is true`);
+        if (!config.almApiKeySecret)
+            throw new Error(`almApiKeySecret is required when almSSOEnabled is true`);
+    }
+    else if (!config.almUsername) {
+        throw new Error(`almUsername is required when almSSOEnabled is false`);
+    }
+    if (!config.almDomain) {
+        throw new Error(`almDomain is required`);
+    }
+    if (!config.almProject) {
+        throw new Error(`almProject is required`);
+    }
+    const criteria = config.almTestSetRunOrderByCriteria;
+    const allowedCriterias = ["NAME", "ID"];
+    if (!allowedCriterias.includes(criteria)) {
+        throw new Error(`Invalid almTestSetRunOrderByCriteria value '${criteria}'. Allowed: ${allowedCriterias.join(', ')}`);
     }
 };
 const validateAndGetTestPaths = async () => {
@@ -137234,13 +137264,6 @@ const validateAndGetTestPaths = async () => {
     eventHandler_logger.debug(`validateAndGetTestPaths: resolved test paths:`);
     testPaths.forEach(p => eventHandler_logger.debug(`"${p}"`));
     return testPaths;
-};
-const validateTestSets = () => {
-    eventHandler_logger.debug("validateAndGetTestSets: ...");
-    if (!config.almTestSets || config.almTestSets.length === 0) {
-        throw new Error(`Missing almTestSets value`);
-    }
-    return;
 };
 const buildJUnitReport = async (xmlResFileName) => {
     eventHandler_logger.info(`buildJUnitReport: from "${xmlResFileName}" ...`);

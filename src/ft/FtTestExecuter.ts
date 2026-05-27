@@ -111,8 +111,11 @@ export default class FtTestExecuter {
       almApiKeySecret: isSSO ? enc.encrypt(config.almApiKeySecret) : "",
       almRunMode: `RUN_${config.almRunMode}`,
       almRunHost: config.almRunHost,
+      almTestSetRunOrderByCriteria: config.almTestSetRunOrderByCriteria,
       almTimeout: `${config.almTimeout}`,
-      resultsFilename: xmlResFileName
+      resultsFilename: xmlResFileName,
+      resultTestNameOnly: `${config.resultTestNameOnly}`,
+      resultUnifiedTestClassname: `${config.resultUnifiedTestClassname}`
     };
     for (let i = 0; i < testSets.length; i++) {
       const key = `TestSet${i + 1}`;
