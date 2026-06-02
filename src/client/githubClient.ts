@@ -39,11 +39,11 @@ export default class GitHubClient {
   public static uploadArtifact = async (parentPath: string, dirOrFileName: string, artifactName: string): Promise<void> => {
     try {
       let filesToUpload: string[] = [];
-      this.logger.debug(`uploadArtifact: parentPath='${parentPath}', dirOrFileName=${dirOrFileName}, artifactName='${artifactName}' ...`);
+      this.logger.debug(`uploadArtifact: parentPath="${parentPath}", dirOrFileName="${dirOrFileName}", artifactName="${artifactName}" ...`);
 
       const fullPath = path.isAbsolute(dirOrFileName) ? dirOrFileName : path.join(parentPath, dirOrFileName);
       if (!fs.existsSync(fullPath)) {
-        this.logger.error(`uploadArtifact: Invalid path: ${fullPath}`);
+        this.logger.error(`uploadArtifact: Invalid path "${fullPath}"`);
         return;
       }
       // Determine if the path is a file or directory
@@ -68,12 +68,12 @@ export default class GitHubClient {
   public static uploadArtifacts = async (parentPath: string, dirNames: string[], artifactName: string): Promise<void> => {
     try {
       let filesToUpload: string[] = [];
-      this.logger.debug(`uploadArtifact: parentPath='${parentPath}', dirNames.length='${dirNames.length}', artifactName='${artifactName}' ...`);
+      this.logger.debug(`uploadArtifact: parentPath="${parentPath}", dirNames.length="${dirNames.length}", artifactName="${artifactName}" ...`);
 
       for (const dirName of dirNames) {
         const fullPath = path.join(parentPath, dirName);
         if (!fs.existsSync(fullPath)) {
-          this.logger.error(`Path does not exist: ${fullPath}`);
+          this.logger.error(`uploadArtifact: Invalid path "${fullPath}"`);
           return;
         }
         const stats = fs.statSync(fullPath);

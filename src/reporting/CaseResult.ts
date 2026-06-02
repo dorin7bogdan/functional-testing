@@ -64,6 +64,9 @@ export default class CaseResult {
         logger.warn(`CaseResult: report path '${attrs.report}' does not start with runnerWsPath '${config.runnerWsPath}'`);
       }
       this.reportPath = attrs.report.startsWith(config.runnerWsPath) ? attrs.report.substring(config.runnerWsPath.length) : attrs.report;
+      if (this.reportPath!.startsWith("/") || this.reportPath!.startsWith("\\")) {
+        this.reportPath = this.reportPath!.substring(1);
+      }
     }
     logger.debug(`CaseResult: className='${this.className}', testName='${this.testName}', duration=${this.duration}, reportPath='${this.reportPath}'`);
   }

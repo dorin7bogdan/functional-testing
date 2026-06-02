@@ -135789,10 +135789,10 @@ class GitHubClient {
     static uploadArtifact = async (parentPath, dirOrFileName, artifactName) => {
         try {
             let filesToUpload = [];
-            this.logger.debug(`uploadArtifact: parentPath='${parentPath}', dirOrFileName=${dirOrFileName}, artifactName='${artifactName}' ...`);
+            this.logger.debug(`uploadArtifact: parentPath="${parentPath}", dirOrFileName="${dirOrFileName}", artifactName="${artifactName}" ...`);
             const fullPath = external_path_.isAbsolute(dirOrFileName) ? dirOrFileName : external_path_.join(parentPath, dirOrFileName);
             if (!external_fs_.existsSync(fullPath)) {
-                this.logger.error(`uploadArtifact: Invalid path: ${fullPath}`);
+                this.logger.error(`uploadArtifact: Invalid path "${fullPath}"`);
                 return;
             }
             // Determine if the path is a file or directory
@@ -135818,11 +135818,11 @@ class GitHubClient {
     static uploadArtifacts = async (parentPath, dirNames, artifactName) => {
         try {
             let filesToUpload = [];
-            this.logger.debug(`uploadArtifact: parentPath='${parentPath}', dirNames.length='${dirNames.length}', artifactName='${artifactName}' ...`);
+            this.logger.debug(`uploadArtifact: parentPath="${parentPath}", dirNames.length="${dirNames.length}", artifactName="${artifactName}" ...`);
             for (const dirName of dirNames) {
                 const fullPath = external_path_.join(parentPath, dirName);
                 if (!external_fs_.existsSync(fullPath)) {
-                    this.logger.error(`Path does not exist: ${fullPath}`);
+                    this.logger.error(`uploadArtifact: Invalid path "${fullPath}"`);
                     return;
                 }
                 const stats = external_fs_.statSync(fullPath);
@@ -136569,6 +136569,9 @@ class CaseResult {
                 CaseResult_logger.warn(`CaseResult: report path '${attrs.report}' does not start with runnerWsPath '${config.runnerWsPath}'`);
             }
             this.reportPath = attrs.report.startsWith(config.runnerWsPath) ? attrs.report.substring(config.runnerWsPath.length) : attrs.report;
+            if (this.reportPath.startsWith("/") || this.reportPath.startsWith("\\")) {
+                this.reportPath = this.reportPath.substring(1);
+            }
         }
         CaseResult_logger.debug(`CaseResult: className='${this.className}', testName='${this.testName}', duration=${this.duration}, reportPath='${this.reportPath}'`);
     }
