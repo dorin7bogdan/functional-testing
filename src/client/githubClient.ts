@@ -43,7 +43,7 @@ export default class GitHubClient {
 
       const fullPath = path.isAbsolute(dirOrFileName) ? dirOrFileName : path.join(parentPath, dirOrFileName);
       if (!fs.existsSync(fullPath)) {
-        this.logger.error(`Path does not exist: ${fullPath}`);
+        this.logger.error(`uploadArtifact: Invalid path: ${fullPath}`);
         return;
       }
       // Determine if the path is a file or directory

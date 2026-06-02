@@ -89036,6 +89036,7 @@ try {
         repoUrl: `${serverUrl}/${owner}/${repo}.git`,
         ftlUrl: getInput('ftlUrl'),
         logLevel: Number.parseInt(getInput('logLevel')),
+        cleanupTestRunFiles: getInput('cleanupTestRunFiles').toLowerCase() === 'true',
         runnerWsPath: process.env.RUNNER_WORKSPACE, // e.g., C:\GitHub_runner\_work\ufto-tests\
         tmpDirPath: external_path_.join(process.env.RUNNER_WORKSPACE, _TMP)
     };
@@ -135791,7 +135792,7 @@ class GitHubClient {
             this.logger.debug(`uploadArtifact: parentPath='${parentPath}', dirOrFileName=${dirOrFileName}, artifactName='${artifactName}' ...`);
             const fullPath = external_path_.isAbsolute(dirOrFileName) ? dirOrFileName : external_path_.join(parentPath, dirOrFileName);
             if (!external_fs_.existsSync(fullPath)) {
-                this.logger.error(`Path does not exist: ${fullPath}`);
+                this.logger.error(`uploadArtifact: Invalid path: ${fullPath}`);
                 return;
             }
             // Determine if the path is a file or directory
@@ -137072,8 +137073,10 @@ const handleCurrentEvent = async () => {
             return ExitCode_ExitCode.Aborted;
         }
         finally {
-            await cleanupReportFolders(reportPaths);
-            await cleanupTempFiles([propsFileName, xmlResFileName, JUNIT_RES_XML].filter((f) => f !== undefined));
+            if (config.cleanupTestRunFiles) {
+                await cleanupReportFolders(reportPaths);
+                await cleanupTempFiles([propsFileName, xmlResFileName, JUNIT_RES_XML].filter((f) => f !== undefined));
+            }
             eventHandler_logger.debug(`END run.`);
         }
     }

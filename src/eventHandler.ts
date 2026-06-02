@@ -116,8 +116,10 @@ export const handleCurrentEvent = async (): Promise<void> => {
       logger.error(`run: ${error}`);
       return ExitCode.Aborted;
     } finally {
-      await cleanupReportFolders(reportPaths);
-      await cleanupTempFiles([propsFileName, xmlResFileName, JUNIT_RES_XML].filter((f): f is string => f !== undefined));
+      if (config.cleanupTestRunFiles) {
+        await cleanupReportFolders(reportPaths);
+        await cleanupTempFiles([propsFileName, xmlResFileName, JUNIT_RES_XML].filter((f): f is string => f !== undefined));
+      }
       logger.debug(`END run.`);
     }
   }
