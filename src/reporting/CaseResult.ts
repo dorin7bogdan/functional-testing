@@ -63,10 +63,9 @@ export default class CaseResult {
       if (!attrs.report.startsWith(config.runnerWsPath)) {
         logger.warn(`CaseResult: report path '${attrs.report}' does not start with runnerWsPath '${config.runnerWsPath}'`);
       }
-      this.reportPath = attrs.report.startsWith(config.runnerWsPath) ? attrs.report.substring(config.runnerWsPath.length) : attrs.report;
-      if (this.reportPath!.startsWith("/") || this.reportPath!.startsWith("\\")) {
-        this.reportPath = this.reportPath!.substring(1);
-      }
+      this.reportPath = attrs.report.startsWith(config.runnerWsPath)
+        ? attrs.report.slice(config.runnerWsPath.length).replace(/^[/\\]/, '')
+        : attrs.report;
     }
     logger.debug(`CaseResult: className='${this.className}', testName='${this.testName}', duration=${this.duration}, reportPath='${this.reportPath}'`);
   }

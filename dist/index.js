@@ -81819,16 +81819,16 @@ function file_command_issueFileCommand(command, message) {
     if (!filePath) {
         throw new Error(`Unable to find environment variable for file command ${command}`);
     }
-    if (!fs.existsSync(filePath)) {
+    if (!external_fs_.existsSync(filePath)) {
         throw new Error(`Missing file at path: ${filePath}`);
     }
-    fs.appendFileSync(filePath, `${toCommandValue(message)}${os.EOL}`, {
+    external_fs_.appendFileSync(filePath, `${utils_toCommandValue(message)}${external_os_namespaceObject.EOL}`, {
         encoding: 'utf8'
     });
 }
 function file_command_prepareKeyValueMessage(key, value) {
-    const delimiter = `ghadelimiter_${crypto.randomUUID()}`;
-    const convertedValue = toCommandValue(value);
+    const delimiter = `ghadelimiter_${external_crypto_namespaceObject.randomUUID()}`;
+    const convertedValue = utils_toCommandValue(value);
     // These should realistically never happen, but just in case someone finds a
     // way to exploit uuid generation let's not allow keys or values that contain
     // the delimiter.
@@ -81838,7 +81838,7 @@ function file_command_prepareKeyValueMessage(key, value) {
     if (convertedValue.includes(delimiter)) {
         throw new Error(`Unexpected input: value should not contain the delimiter "${delimiter}"`);
     }
-    return `${key}<<${delimiter}${os.EOL}${convertedValue}${os.EOL}${delimiter}`;
+    return `${key}<<${delimiter}${external_os_namespaceObject.EOL}${convertedValue}${external_os_namespaceObject.EOL}${delimiter}`;
 }
 //# sourceMappingURL=file-command.js.map
 // EXTERNAL MODULE: external "path"
@@ -84463,10 +84463,10 @@ function getBooleanInput(name, options) {
 function setOutput(name, value) {
     const filePath = process.env['GITHUB_OUTPUT'] || '';
     if (filePath) {
-        return issueFileCommand('OUTPUT', prepareKeyValueMessage(name, value));
+        return file_command_issueFileCommand('OUTPUT', file_command_prepareKeyValueMessage(name, value));
     }
-    process.stdout.write(os.EOL);
-    issueCommand('set-output', { name }, toCommandValue(value));
+    process.stdout.write(external_os_namespaceObject.EOL);
+    command_issueCommand('set-output', { name }, utils_toCommandValue(value));
 }
 /**
  * Enables or disables the echoing of commands into stdout for the rest of the step.
@@ -88967,7 +88967,6 @@ function getOctokit(token, options, ...additionalPlugins) {
  */
 
 
-
 const _TMP = "___tmp";
 const serverUrl = github_context.serverUrl;
 const { owner, repo } = github_context.repo;
@@ -89037,8 +89036,7 @@ try {
         ftlUrl: getInput('ftlUrl'),
         logLevel: Number.parseInt(getInput('logLevel')),
         cleanupTestRunFiles: getInput('cleanupTestRunFiles').toLowerCase() === 'true',
-        runnerWsPath: process.env.RUNNER_WORKSPACE, // e.g., C:\GitHub_runner\_work\ufto-tests\
-        tmpDirPath: external_path_.join(process.env.RUNNER_WORKSPACE, _TMP)
+        runnerWsPath: process.env.RUNNER_WORKSPACE // e.g., C:\GitHub_runner\_work\ufto-tests\
     };
 }
 catch (error) {
@@ -136323,9 +136321,6 @@ const checkoutRepo = async (workDir) => {
         throw error;
     }
 };
-const toBase64 = (value) => {
-    return Buffer.from(value, 'utf8').toString('base64');
-};
 
 
 ;// CONCATENATED MODULE: ./src/dto/RunType.ts
@@ -136568,10 +136563,9 @@ class CaseResult {
             if (!attrs.report.startsWith(config.runnerWsPath)) {
                 CaseResult_logger.warn(`CaseResult: report path '${attrs.report}' does not start with runnerWsPath '${config.runnerWsPath}'`);
             }
-            this.reportPath = attrs.report.startsWith(config.runnerWsPath) ? attrs.report.substring(config.runnerWsPath.length) : attrs.report;
-            if (this.reportPath.startsWith("/") || this.reportPath.startsWith("\\")) {
-                this.reportPath = this.reportPath.substring(1);
-            }
+            this.reportPath = attrs.report.startsWith(config.runnerWsPath)
+                ? attrs.report.slice(config.runnerWsPath.length).replace(/^[/\\]/, '')
+                : attrs.report;
         }
         CaseResult_logger.debug(`CaseResult: className='${this.className}', testName='${this.testName}', duration=${this.duration}, reportPath='${this.reportPath}'`);
     }
@@ -137006,6 +137000,7 @@ class JUnitParser {
 
 
 
+
 const eventHandler_logger = new Logger('eventHandler');
 const JUNIT_RES_XML = 'junit-results.xml';
 const handleCurrentEvent = async () => {
@@ -137054,9 +137049,14 @@ const handleCurrentEvent = async () => {
             throw new Error(`Unsupported runType: ${runType}`);
     }
     const exitCode = await run();
-    //TODO use exitCode ?
+    const status = ExitCode_ExitCode[exitCode] ?? ExitCode_ExitCode[ExitCode_ExitCode.Unknown];
+    setOutput('exitCode', `${exitCode}`);
+    setOutput('status', status);
     eventHandler_logger.info(`END handleEvent. ExitCode=${exitCode}`);
     // END of handleCurrentEvent function - the rest are helper functions
+    if (exitCode !== ExitCode_ExitCode.Passed) {
+        throw new Error(`FT run finished with status="${status}", exitCode=${exitCode}`);
+    }
     async function run() {
         eventHandler_logger.debug(`BEGIN run: ...`);
         let propsFileName;

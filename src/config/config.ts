@@ -60,7 +60,6 @@ interface Config {
   logLevel: number;
   cleanupTestRunFiles: boolean;
   runnerWsPath: string; // Path to the workspace directory process.env.RUNNER_WORKSPACE!
-  tmpDirPath: string;
 }
 
 const _TMP = "___tmp";
@@ -131,8 +130,7 @@ try {
     ftlUrl: getInput('ftlUrl'),
     logLevel: Number.parseInt(getInput('logLevel')),
     cleanupTestRunFiles: getInput('cleanupTestRunFiles').toLowerCase() === 'true',
-    runnerWsPath: process.env.RUNNER_WORKSPACE!, // e.g., C:\GitHub_runner\_work\ufto-tests\
-    tmpDirPath: path.join(process.env.RUNNER_WORKSPACE!, _TMP)
+    runnerWsPath: process.env.RUNNER_WORKSPACE! // e.g., C:\GitHub_runner\_work\ufto-tests\
   };
 } catch (error: any) {
   errorLoadingConfig = error.message;

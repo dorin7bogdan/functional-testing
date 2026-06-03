@@ -102,6 +102,13 @@ inputs:
     description: 'Whether to delete the test run files from the runner after the test run is completed. Use for troubleshooting purposes only.'
     required: false
     default: "true"
+
+outputs:
+  exitCode:
+    description: 'FT process exit code'
+  status:
+    description: 'FT final status (Passed|Failed|Unstable|Aborted|Unknown)'
+
 runs:
   using: 'node24'
   main: 'dist/index.js'

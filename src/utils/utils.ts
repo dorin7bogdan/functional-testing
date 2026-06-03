@@ -245,8 +245,4 @@ const checkoutRepo = async (workDir: string): Promise<void> => {
   }
 }
 
-const toBase64 = (value: string): string => {
-  return Buffer.from(value, 'utf8').toString('base64');
-}
-
-export { isBlank, isTestMainFile, getTestType, getParentFolderFullPath, extractWorkflowFileName, sleep, getFileIfExist, getTimestamp, escapePropVal, checkReadWriteAccess, checkFileExists, escapeXML, parseTimeToFloat, checkoutRepo, toBase64 };
+export { isBlank, isTestMainFile, getTestType, getParentFolderFullPath, extractWorkflowFileName, sleep, getFileIfExist, getTimestamp, escapePropVal, checkReadWriteAccess, checkFileExists, escapeXML, parseTimeToFloat, checkoutRepo };

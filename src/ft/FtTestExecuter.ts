@@ -31,7 +31,7 @@ import { promises as fs } from 'fs';
 import Logger from '../utils/logger.js';
 import { ExitCode } from './ExitCode.js';
 import FTL from './FTL.js';
-import { checkFileExists, checkReadWriteAccess, escapePropVal, getTimestamp, toBase64 } from '../utils/utils.js';
+import { checkFileExists, checkReadWriteAccess, escapePropVal, getTimestamp } from '../utils/utils.js';
 import { config } from '../config/config.js';
 import { RunType } from '../dto/RunType.js';
 import Encrypter from './Encrypter.js';

@@ -27,6 +27,7 @@
  * limitations under the License.
  */
 
+import { setOutput } from '@actions/core';
 import { context } from '@actions/github';
 import { config } from './config/config.js';
 import Logger from './utils/logger.js';
@@ -94,10 +95,17 @@ export const handleCurrentEvent = async (): Promise<void> => {
       throw new Error(`Unsupported runType: ${runType}`);
   }
   const exitCode = await run();
-  //TODO use exitCode ?
+  const status = ExitCode[exitCode] ?? ExitCode[ExitCode.Unknown];
+
+  setOutput('exitCode', `${exitCode}`);
+  setOutput('status', status);
 
   logger.info(`END handleEvent. ExitCode=${exitCode}`);
   // END of handleCurrentEvent function - the rest are helper functions
+
+  if (exitCode !== ExitCode.Passed) {
+    throw new Error(`FT run finished with status="${status}", exitCode=${exitCode}`);
+  }
 
   async function run(): Promise<ExitCode> {
     logger.debug(`BEGIN run: ...`);
