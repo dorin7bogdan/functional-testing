@@ -88967,7 +88967,6 @@ function getOctokit(token, options, ...additionalPlugins) {
  */
 
 
-const _TMP = "___tmp";
 const serverUrl = github_context.serverUrl;
 const { owner, repo } = github_context.repo;
 const quotesRegex = /^['"]+|['"]+$/g;
@@ -89036,6 +89035,7 @@ try {
         ftlUrl: getInput('ftlUrl'),
         logLevel: Number.parseInt(getInput('logLevel')),
         cleanupTestRunFiles: getInput('cleanupTestRunFiles').toLowerCase() === 'true',
+        failIfNotPassed: getInput('failIfNotPassed').toLowerCase() === 'true',
         runnerWsPath: process.env.RUNNER_WORKSPACE // e.g., C:\GitHub_runner\_work\ufto-tests\
     };
 }
@@ -137054,7 +137054,7 @@ const handleCurrentEvent = async () => {
     setOutput('status', status);
     eventHandler_logger.info(`END handleEvent. ExitCode=${exitCode}`);
     // END of handleCurrentEvent function - the rest are helper functions
-    if (exitCode !== ExitCode_ExitCode.Passed) {
+    if (exitCode !== ExitCode_ExitCode.Passed && config.failIfNotPassed) {
         throw new Error(`FT run finished with status="${status}", exitCode=${exitCode}`);
     }
     async function run() {
@@ -137191,7 +137191,6 @@ const cleanupTempFiles = async (fileNames) => {
             .filter(entry => entry.isFile() && pattern.test(entry.name))
             .map(entry => entry.name);
         if (tempFiles.length) {
-            eventHandler_logger.debug(`cleanupTempFiles: Found ${tempFiles.length} timestamped files to clean up`);
             await Promise.all(tempFiles.map(async (file) => {
                 const fullPath = external_path_.join(config.runnerWsPath, file);
                 try {

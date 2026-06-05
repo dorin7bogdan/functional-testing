@@ -29,7 +29,6 @@
 
 import { context } from '@actions/github';
 import { getInput } from '@actions/core';
-import * as path from 'path';
 
 interface Config {
   runType: string; // filesystem | filesystem-parallel | alm | alm-lab
@@ -60,9 +59,9 @@ interface Config {
   logLevel: number;
   cleanupTestRunFiles: boolean;
   runnerWsPath: string; // Path to the workspace directory process.env.RUNNER_WORKSPACE!
+  failIfNotPassed: boolean;
 }
 
-const _TMP = "___tmp";
 const serverUrl = context.serverUrl;
 const { owner, repo } = context.repo;
 const quotesRegex = /^['"]+|['"]+$/g;
@@ -130,6 +129,7 @@ try {
     ftlUrl: getInput('ftlUrl'),
     logLevel: Number.parseInt(getInput('logLevel')),
     cleanupTestRunFiles: getInput('cleanupTestRunFiles').toLowerCase() === 'true',
+    failIfNotPassed: getInput('failIfNotPassed').toLowerCase() === 'true',
     runnerWsPath: process.env.RUNNER_WORKSPACE! // e.g., C:\GitHub_runner\_work\ufto-tests\
   };
 } catch (error: any) {

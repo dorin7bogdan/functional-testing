@@ -11,6 +11,7 @@ inputs:
                 For multiple individual tests you can use an array of paths: ["path\\to\\GUITest1", "path\\to\\GUITest2", ...]. 
                 Any path must be relative to the repository root.
                 IMPORTANT: Absolute paths are not allowed.
+                GUI and API tests are supported.
                 If using a .mtbx file, the test paths inside it must be relative to your GitHub organization, for example:
                   <Mtbx>
                     <Test name="GUITest1" path="your-repository-name\path\to\GUITest1"></Test>
@@ -100,6 +101,10 @@ inputs:
     default: "3"
   cleanupTestRunFiles:
     description: 'Whether to delete the test run files from the runner after the test run is completed. Use for troubleshooting purposes only.'
+    required: false
+    default: "true"
+  failIfNotPassed:
+    description: 'Whether to fail the workflow step when the FT run status is not Passed.'
     required: false
     default: "true"
 

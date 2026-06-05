@@ -103,7 +103,7 @@ export const handleCurrentEvent = async (): Promise<void> => {
   logger.info(`END handleEvent. ExitCode=${exitCode}`);
   // END of handleCurrentEvent function - the rest are helper functions
 
-  if (exitCode !== ExitCode.Passed) {
+  if (exitCode !== ExitCode.Passed && config.failIfNotPassed) {
     throw new Error(`FT run finished with status="${status}", exitCode=${exitCode}`);
   }
 
@@ -253,7 +253,6 @@ const cleanupTempFiles = async (fileNames: string[]) => {
       .map(entry => entry.name);
 
     if (tempFiles.length) {
-      logger.debug(`cleanupTempFiles: Found ${tempFiles.length} timestamped files to clean up`);
       await Promise.all(tempFiles.map(async (file) => {
         const fullPath = path.join(config.runnerWsPath, file);
         try {
