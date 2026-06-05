@@ -30,21 +30,22 @@
 import { context } from '@actions/github';
 import { getInput } from '@actions/core';
 import AlmConfig from './almConfig.js';
+import { RunType } from '../dto/RunType.js';
 
 interface Config {
-  runType: string; // filesystem | filesystem-parallel | alm | alm-lab
-  testPaths: string[];
-  timeout: number;
-  cancelRunOnFailure: boolean;
+  runType: RunType; // filesystem | filesystem-parallel | alm | alm-lab
+  testPaths?: string[];
+  timeout?: number;
+  cancelRunOnFailure?: boolean;
   resultTestNameOnly: boolean;
   resultUnifiedTestClassname: boolean;
-  archiveReportsAsSingleArtifact: boolean;
-  githubToken: string;
+  githubToken?: string;
   alm?: AlmConfig;
   owner: string;
   repo: string;
   repoUrl: string;
   ftlUrl: string;
+  archiveReportsAsSingleArtifact: boolean;
   logLevel: number;
   cleanupTestRunFiles: boolean;
   runnerWsPath: string; // Path to the workspace directory process.env.RUNNER_WORKSPACE!
@@ -89,12 +90,26 @@ const getUnquotedInputEx = (key: string): string[] => {
   }
 }
 
+const RUN_TYPE_MAP: Record<string, RunType> = {
+  'filesystem': RunType.FS,
+  'filesystem-parallel': RunType.FSParallel,
+  'alm': RunType.ALM,
+  'alm-lab': RunType.ALMLab
+};
+
+const validateAndGetRunType = (): RunType => {
+  const raw = getUnquotedInput('runType', 'filesystem');
+  const runType = RUN_TYPE_MAP[raw];
+
+  if (runType === undefined) {
+    throw new Error(`Invalid runType value '${raw}'. Allowed: ${Object.keys(RUN_TYPE_MAP).join(', ')}`);
+  }
+  return runType;
+}
+
 try {
   _config = {
-    runType: getUnquotedInput('runType', 'filesystem'),
-    testPaths: getUnquotedInputEx('testPaths'),
-    timeout: Number.parseInt(getInput('timeout')),
-    cancelRunOnFailure: getInput('cancelRunOnFailure').toLowerCase() === 'true',
+    runType: validateAndGetRunType(),
     resultTestNameOnly: getInput('resultTestNameOnly').toLowerCase() === 'true',
     resultUnifiedTestClassname: getInput('resultUnifiedTestClassname').toLowerCase() === 'true',
     archiveReportsAsSingleArtifact: getInput('archiveReportsAsSingleArtifact').toLowerCase() === 'true',
@@ -108,7 +123,14 @@ try {
     failIfNotPassed: getInput('failIfNotPassed').toLowerCase() === 'true',
     runnerWsPath: process.env.RUNNER_WORKSPACE! // e.g., C:\GitHub_runner\_work\ufto-tests\
   };
-  if (_config.runType.toLowerCase() === 'alm') {
+  if (_config.runType === RunType.FS) {
+    _config = {
+      testPaths: getUnquotedInputEx('testPaths'),
+      timeout: Number.parseInt(getInput('timeout')),
+      cancelRunOnFailure: getInput('cancelRunOnFailure').toLowerCase() === 'true',
+      ..._config
+    }
+  } else if (_config.runType === RunType.ALM) {
     _config.alm = {
       testSets: getUnquotedInputEx('almTestSets'),
       serverUrl: getInput('almServerUrl'),

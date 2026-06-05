@@ -77,7 +77,7 @@ export const handleCurrentEvent = async (): Promise<void> => {
   logger.info(`Working directory: ${workDir}`);
 
   let testOrTestSetPaths: string[] = [];
-  const runType = validateAndGetRunType();
+  const runType = config.runType;
   switch (runType) {
     case RunType.FS:
       await checkoutRepo(workDir);
@@ -282,24 +282,6 @@ const cleanupReportFolders = async (reportPaths: string[]) => {
   }));
 }
 
-const RUN_TYPE_MAP: Record<string, RunType> = {
-  'filesystem': RunType.FS,
-  'filesystem-parallel': RunType.FSParallel,
-  'alm': RunType.ALM,
-  'alm-lab': RunType.ALMLab
-};
-
-const validateAndGetRunType = (): RunType => {
-  const raw = config.runType.toLowerCase();
-  const runType = RUN_TYPE_MAP[raw];
-
-  if (runType === undefined) {
-    throw new Error(`Invalid runType value '${raw}'. Allowed: ${Object.keys(RUN_TYPE_MAP).join(', ')}`);
-  }
-
-  logger.debug(`validateAndGetRunType: '${raw}' => RunType.${RunType[runType]}`);
-  return runType;
-}
 const validateAlmProps = (): void => {
   logger.debug(`validateAlmProps ...`);
   const alm = config.alm;

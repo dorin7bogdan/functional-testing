@@ -26,10 +26,6 @@ inputs:
     description: 'Whether to cancel the test run on first failure'
     required: false
     default: "false"
-  archiveReportsAsSingleArtifact:
-    description: 'If set to "true", all Functional Testing reports will be archived and uploaded as a single artifact. Otherwise, each test report will be archived and uploaded separately.'
-    required: false
-    default: "false"
   githubToken:
     description: 'GitHub PAT'
     required: true
@@ -95,6 +91,10 @@ inputs:
     description: 'The URL of OpenText FTToolsLauncher.exe'
     required: false
     default: "https://github.com/MicroFocus/ADM-FT-ToolsLauncher/releases/download/v25.2.0/FTToolsLauncher_net48.exe"
+  archiveReportsAsSingleArtifact:
+    description: 'If set to "true", all Functional Testing reports will be archived and uploaded as a single artifact. Otherwise, each test report will be archived and uploaded separately.'
+    required: false
+    default: "false"
   logLevel:
     description: 'Sets the log level (1-5): 1-trace, 2-debug, 3-info, 4-warn, 5-error'
     required: false

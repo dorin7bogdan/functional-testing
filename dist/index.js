@@ -88936,6 +88936,43 @@ function getOctokit(token, options, ...additionalPlugins) {
     return new GitHubWithPlugins(getOctokitOptions(token, options));
 }
 //# sourceMappingURL=github.js.map
+;// CONCATENATED MODULE: ./src/dto/RunType.ts
+/*
+ * Copyright 2026 Open Text.
+ *
+ * The only warranties for products and services of Open Text and
+ * its affiliates and licensors (�Open Text�) are as may be set forth
+ * in the express warranty statements accompanying such products and services.
+ * Nothing herein should be construed as constituting an additional warranty.
+ * Open Text shall not be liable for technical or editorial errors or
+ * omissions contained herein. The information contained herein is subject
+ * to change without notice.
+ *
+ * Except as specifically indicated otherwise, this document contains
+ * confidential information and a valid license is required for possession,
+ * use or copying. If this work is provided to the U.S. Government,
+ * consistent with FAR 12.211 and 12.212, Commercial Computer Software,
+ * Computer Software Documentation, and Technical Data for Commercial Items are
+ * licensed to the U.S. Government under vendor's standard commercial license.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+var RunType;
+(function (RunType) {
+    RunType[RunType["FS"] = 0] = "FS";
+    RunType[RunType["FSParallel"] = 1] = "FSParallel";
+    RunType[RunType["ALM"] = 2] = "ALM";
+    RunType[RunType["ALMLab"] = 3] = "ALMLab";
+})(RunType || (RunType = {}));
+
 ;// CONCATENATED MODULE: ./src/config/config.ts
 /*
  * Copyright 2026 Open Text.
@@ -88965,6 +89002,7 @@ function getOctokit(token, options, ...additionalPlugins) {
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 
 
 const serverUrl = github_context.serverUrl;
@@ -89006,12 +89044,23 @@ const getUnquotedInputEx = (key) => {
         return [];
     }
 };
+const RUN_TYPE_MAP = {
+    'filesystem': RunType.FS,
+    'filesystem-parallel': RunType.FSParallel,
+    'alm': RunType.ALM,
+    'alm-lab': RunType.ALMLab
+};
+const validateAndGetRunType = () => {
+    const raw = getUnquotedInput('runType', 'filesystem');
+    const runType = RUN_TYPE_MAP[raw];
+    if (runType === undefined) {
+        throw new Error(`Invalid runType value '${raw}'. Allowed: ${Object.keys(RUN_TYPE_MAP).join(', ')}`);
+    }
+    return runType;
+};
 try {
     _config = {
-        runType: getUnquotedInput('runType', 'filesystem'),
-        testPaths: getUnquotedInputEx('testPaths'),
-        timeout: Number.parseInt(getInput('timeout')),
-        cancelRunOnFailure: getInput('cancelRunOnFailure').toLowerCase() === 'true',
+        runType: validateAndGetRunType(),
         resultTestNameOnly: getInput('resultTestNameOnly').toLowerCase() === 'true',
         resultUnifiedTestClassname: getInput('resultUnifiedTestClassname').toLowerCase() === 'true',
         archiveReportsAsSingleArtifact: getInput('archiveReportsAsSingleArtifact').toLowerCase() === 'true',
@@ -89025,7 +89074,15 @@ try {
         failIfNotPassed: getInput('failIfNotPassed').toLowerCase() === 'true',
         runnerWsPath: process.env.RUNNER_WORKSPACE // e.g., C:\GitHub_runner\_work\ufto-tests\
     };
-    if (_config.runType.toLowerCase() === 'alm') {
+    if (_config.runType === RunType.FS) {
+        _config = {
+            testPaths: getUnquotedInputEx('testPaths'),
+            timeout: Number.parseInt(getInput('timeout')),
+            cancelRunOnFailure: getInput('cancelRunOnFailure').toLowerCase() === 'true',
+            ..._config
+        };
+    }
+    else if (_config.runType === RunType.ALM) {
         _config.alm = {
             testSets: getUnquotedInputEx('almTestSets'),
             serverUrl: getInput('almServerUrl'),
@@ -136327,43 +136384,6 @@ const checkoutRepo = async (workDir) => {
 };
 
 
-;// CONCATENATED MODULE: ./src/dto/RunType.ts
-/*
- * Copyright 2026 Open Text.
- *
- * The only warranties for products and services of Open Text and
- * its affiliates and licensors (�Open Text�) are as may be set forth
- * in the express warranty statements accompanying such products and services.
- * Nothing herein should be construed as constituting an additional warranty.
- * Open Text shall not be liable for technical or editorial errors or
- * omissions contained herein. The information contained herein is subject
- * to change without notice.
- *
- * Except as specifically indicated otherwise, this document contains
- * confidential information and a valid license is required for possession,
- * use or copying. If this work is provided to the U.S. Government,
- * consistent with FAR 12.211 and 12.212, Commercial Computer Software,
- * Computer Software Documentation, and Technical Data for Commercial Items are
- * licensed to the U.S. Government under vendor's standard commercial license.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *   http://www.apache.org/licenses/LICENSE-2.0
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-var RunType;
-(function (RunType) {
-    RunType[RunType["FS"] = 0] = "FS";
-    RunType[RunType["FSParallel"] = 1] = "FSParallel";
-    RunType[RunType["ALM"] = 2] = "ALM";
-    RunType[RunType["ALMLab"] = 3] = "ALMLab";
-})(RunType || (RunType = {}));
-
 ;// CONCATENATED MODULE: ./src/ft/Encrypter.ts
 
 /** Single-use: create once, encrypt all values, pass key to launcher, then discard it. */
@@ -137035,7 +137055,7 @@ const handleCurrentEvent = async () => {
     const workDir = process.cwd(); //.env.GITHUB_WORKSPACE || '.';
     eventHandler_logger.info(`Working directory: ${workDir}`);
     let testOrTestSetPaths = [];
-    const runType = validateAndGetRunType();
+    const runType = config.runType;
     switch (runType) {
         case RunType.FS:
             await checkoutRepo(workDir);
@@ -137225,21 +137245,6 @@ const cleanupReportFolders = async (reportPaths) => {
             eventHandler_logger.warn(`cleanupReportFolders: Failed to delete "${fullPath}": ${error}`);
         }
     }));
-};
-const RUN_TYPE_MAP = {
-    'filesystem': RunType.FS,
-    'filesystem-parallel': RunType.FSParallel,
-    'alm': RunType.ALM,
-    'alm-lab': RunType.ALMLab
-};
-const validateAndGetRunType = () => {
-    const raw = config.runType.toLowerCase();
-    const runType = RUN_TYPE_MAP[raw];
-    if (runType === undefined) {
-        throw new Error(`Invalid runType value '${raw}'. Allowed: ${Object.keys(RUN_TYPE_MAP).join(', ')}`);
-    }
-    eventHandler_logger.debug(`validateAndGetRunType: '${raw}' => RunType.${RunType[runType]}`);
-    return runType;
 };
 const validateAlmProps = () => {
     eventHandler_logger.debug(`validateAlmProps ...`);
