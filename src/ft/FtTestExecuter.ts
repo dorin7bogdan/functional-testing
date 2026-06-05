@@ -96,23 +96,23 @@ export default class FtTestExecuter {
     const xmlResFileName = `results_${suffix}.xml`;
     const propsFullPath = path.join(config.runnerWsPath, propsFileName);
     logger.debug(`createAlmProps: "${propsFileName}" ...`);
-    const isSSO = config.almSSOEnabled;
+    const alm = config.alm!;
     const enc = new Encrypter();
 
     const props: { [key: string]: string } = {
       runType: runtype,
-      almServerUrl: config.almServerUrl,
-      almUsername: config.almUsername,
-      almPassword: isSSO ? "" : enc.encrypt(config.almPassword),
-      almDomain: config.almDomain,
-      almProject: config.almProject,
-      SSOEnabled: `${config.almSSOEnabled}`,
-      almClientId: config.almClientId,
-      almApiKeySecret: isSSO ? enc.encrypt(config.almApiKeySecret) : "",
-      almRunMode: `RUN_${config.almRunMode}`,
-      almRunHost: config.almRunHost,
-      almTestSetRunOrderByCriteria: config.almTestSetRunOrderByCriteria,
-      almTimeout: `${config.almTimeout}`,
+      almServerUrl: alm.serverUrl,
+      almUsername: alm.username,
+      almPassword: alm.isSSO ? "" : enc.encrypt(alm.password),
+      almDomain: alm.domain,
+      almProject: alm.project,
+      SSOEnabled: `${alm.isSSO}`,
+      almClientId: alm.clientId,
+      almApiKeySecret: alm.isSSO ? enc.encrypt(alm.apiKeySecret) : "",
+      almRunMode: `RUN_${alm.runMode}`,
+      almRunHost: alm.runHost,
+      almTestSetRunOrderByCriteria: alm.testSetRunOrderByCriteria,
+      almTimeout: `${alm.timeout}`,
       resultsFilename: xmlResFileName,
       resultTestNameOnly: `${config.resultTestNameOnly}`,
       resultUnifiedTestClassname: `${config.resultUnifiedTestClassname}`

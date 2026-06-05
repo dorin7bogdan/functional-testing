@@ -89016,19 +89016,6 @@ try {
         resultUnifiedTestClassname: getInput('resultUnifiedTestClassname').toLowerCase() === 'true',
         archiveReportsAsSingleArtifact: getInput('archiveReportsAsSingleArtifact').toLowerCase() === 'true',
         githubToken: getInput('githubToken'),
-        almTestSets: getUnquotedInputEx('almTestSets'),
-        almServerUrl: getInput('almServerUrl'),
-        almUsername: getInput('almUsername'),
-        almPassword: getInput('almPassword'),
-        almDomain: getInput('almDomain'),
-        almProject: getInput('almProject'),
-        almSSOEnabled: getInput('almSSOEnabled').toLowerCase() === 'true',
-        almClientId: getInput('almClientId'),
-        almApiKeySecret: getInput('almApiKeySecret'),
-        almRunMode: getInput('almRunMode').toUpperCase(),
-        almRunHost: getInput('almRunHost'),
-        almTestSetRunOrderByCriteria: getInput('almTestSetRunOrderByCriteria'),
-        almTimeout: Number.parseInt(getInput('almTimeout')),
         owner: owner,
         repo: repo,
         repoUrl: `${serverUrl}/${owner}/${repo}.git`,
@@ -89038,6 +89025,23 @@ try {
         failIfNotPassed: getInput('failIfNotPassed').toLowerCase() === 'true',
         runnerWsPath: process.env.RUNNER_WORKSPACE // e.g., C:\GitHub_runner\_work\ufto-tests\
     };
+    if (_config.runType.toLowerCase() === 'alm') {
+        _config.alm = {
+            testSets: getUnquotedInputEx('almTestSets'),
+            serverUrl: getInput('almServerUrl'),
+            username: getInput('almUsername'),
+            password: getInput('almPassword'),
+            domain: getInput('almDomain'),
+            project: getInput('almProject'),
+            isSSO: getInput('almSSOEnabled').toLowerCase() === 'true',
+            clientId: getInput('almClientId'),
+            apiKeySecret: getInput('almApiKeySecret'),
+            runMode: getInput('almRunMode').toUpperCase(),
+            runHost: getInput('almRunHost'),
+            testSetRunOrderByCriteria: getInput('almTestSetRunOrderByCriteria'),
+            timeout: Number.parseInt(getInput('almTimeout'))
+        };
+    }
 }
 catch (error) {
     errorLoadingConfig = error.message;
@@ -136485,22 +136489,22 @@ class FtTestExecuter {
         const xmlResFileName = `results_${suffix}.xml`;
         const propsFullPath = external_path_.join(config.runnerWsPath, propsFileName);
         FtTestExecuter_logger.debug(`createAlmProps: "${propsFileName}" ...`);
-        const isSSO = config.almSSOEnabled;
+        const alm = config.alm;
         const enc = new Encrypter();
         const props = {
             runType: runtype,
-            almServerUrl: config.almServerUrl,
-            almUsername: config.almUsername,
-            almPassword: isSSO ? "" : enc.encrypt(config.almPassword),
-            almDomain: config.almDomain,
-            almProject: config.almProject,
-            SSOEnabled: `${config.almSSOEnabled}`,
-            almClientId: config.almClientId,
-            almApiKeySecret: isSSO ? enc.encrypt(config.almApiKeySecret) : "",
-            almRunMode: `RUN_${config.almRunMode}`,
-            almRunHost: config.almRunHost,
-            almTestSetRunOrderByCriteria: config.almTestSetRunOrderByCriteria,
-            almTimeout: `${config.almTimeout}`,
+            almServerUrl: alm.serverUrl,
+            almUsername: alm.username,
+            almPassword: alm.isSSO ? "" : enc.encrypt(alm.password),
+            almDomain: alm.domain,
+            almProject: alm.project,
+            SSOEnabled: `${alm.isSSO}`,
+            almClientId: alm.clientId,
+            almApiKeySecret: alm.isSSO ? enc.encrypt(alm.apiKeySecret) : "",
+            almRunMode: `RUN_${alm.runMode}`,
+            almRunHost: alm.runHost,
+            almTestSetRunOrderByCriteria: alm.testSetRunOrderByCriteria,
+            almTimeout: `${alm.timeout}`,
             resultsFilename: xmlResFileName,
             resultTestNameOnly: `${config.resultTestNameOnly}`,
             resultUnifiedTestClassname: `${config.resultUnifiedTestClassname}`
@@ -137041,7 +137045,7 @@ const handleCurrentEvent = async () => {
             throw new Error(`Not yet implemented, runType: ${runType}`);
         case RunType.ALM:
             validateAlmProps();
-            testOrTestSetPaths = config.almTestSets;
+            testOrTestSetPaths = config.alm.testSets;
             break;
         case RunType.ALMLab:
             throw new Error(`Not yet implemented, runType: ${runType}`);
@@ -137052,7 +137056,7 @@ const handleCurrentEvent = async () => {
     const status = ExitCode_ExitCode[exitCode] ?? ExitCode_ExitCode[ExitCode_ExitCode.Unknown];
     setOutput('exitCode', `${exitCode}`);
     setOutput('status', status);
-    eventHandler_logger.info(`END handleEvent. ExitCode=${exitCode}`);
+    eventHandler_logger.info(`END handleEvent. ExitCode=${exitCode}, Status=${status}`);
     // END of handleCurrentEvent function - the rest are helper functions
     if (exitCode !== ExitCode_ExitCode.Passed && config.failIfNotPassed) {
         throw new Error(`FT run finished with status="${status}", exitCode=${exitCode}`);
@@ -137239,37 +137243,38 @@ const validateAndGetRunType = () => {
 };
 const validateAlmProps = () => {
     eventHandler_logger.debug(`validateAlmProps ...`);
-    if (!config.almTestSets || config.almTestSets.length === 0) {
+    const alm = config.alm;
+    if (!alm || !alm.testSets || alm.testSets.length === 0) {
         throw new Error(`Missing almTestSets value`);
     }
-    const runMode = config.almRunMode;
+    const runMode = alm.runMode;
     const allowedModes = ["LOCAL", "REMOTE", "PLANNED_HOST"];
     if (!allowedModes.includes(runMode)) {
         throw new Error(`Invalid almRunMode value '${runMode}'. Allowed: ${allowedModes.join(', ')}`);
     }
-    if (runMode === "REMOTE" && !config.almRunHost) {
+    if (runMode === "REMOTE" && !alm.runHost) {
         throw new Error(`almRunHost is required when almRunMode is '${runMode}'`);
     }
     const urlPattern = /^https?:\/\/[^\/]+\/qcbin\/?$/i;
-    if (!urlPattern.test(config.almServerUrl)) {
-        throw new Error(`Invalid almServerUrl value '${config.almServerUrl}'. Expected format: http(s)://{hostname-or-ip}[:{port}]/qcbin`);
+    if (!urlPattern.test(alm.serverUrl)) {
+        throw new Error(`Invalid almServerUrl value '${alm.serverUrl}'. Expected format: http(s)://{hostname-or-ip}[:{port}]/qcbin`);
     }
-    if (config.almSSOEnabled) {
-        if (!config.almClientId)
+    if (alm.isSSO) {
+        if (!alm.clientId)
             throw new Error(`almClientId is required when almSSOEnabled is true`);
-        if (!config.almApiKeySecret)
+        if (!alm.apiKeySecret)
             throw new Error(`almApiKeySecret is required when almSSOEnabled is true`);
     }
-    else if (!config.almUsername) {
+    else if (!alm.username) {
         throw new Error(`almUsername is required when almSSOEnabled is false`);
     }
-    if (!config.almDomain) {
+    if (!alm.domain) {
         throw new Error(`almDomain is required`);
     }
-    if (!config.almProject) {
+    if (!alm.project) {
         throw new Error(`almProject is required`);
     }
-    const criteria = config.almTestSetRunOrderByCriteria;
+    const criteria = alm.testSetRunOrderByCriteria;
     const allowedCriterias = ["NAME", "ID"];
     if (!allowedCriterias.includes(criteria)) {
         throw new Error(`Invalid almTestSetRunOrderByCriteria value '${criteria}'. Allowed: ${allowedCriterias.join(', ')}`);

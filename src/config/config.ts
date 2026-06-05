@@ -29,6 +29,7 @@
 
 import { context } from '@actions/github';
 import { getInput } from '@actions/core';
+import AlmConfig from './almConfig.js';
 
 interface Config {
   runType: string; // filesystem | filesystem-parallel | alm | alm-lab
@@ -39,19 +40,7 @@ interface Config {
   resultUnifiedTestClassname: boolean;
   archiveReportsAsSingleArtifact: boolean;
   githubToken: string;
-  almTestSets: string[];
-  almServerUrl: string;
-  almUsername: string;
-  almPassword: string;
-  almDomain: string;
-  almProject: string;
-  almSSOEnabled: boolean;
-  almClientId: string;
-  almApiKeySecret: string;
-  almRunMode: string;
-  almRunHost: string;
-  almTestSetRunOrderByCriteria: string;
-  almTimeout: number;
+  alm?: AlmConfig;
   owner: string;
   repo: string;
   repoUrl: string;
@@ -110,19 +99,6 @@ try {
     resultUnifiedTestClassname: getInput('resultUnifiedTestClassname').toLowerCase() === 'true',
     archiveReportsAsSingleArtifact: getInput('archiveReportsAsSingleArtifact').toLowerCase() === 'true',
     githubToken: getInput('githubToken'),
-    almTestSets: getUnquotedInputEx('almTestSets'),
-    almServerUrl: getInput('almServerUrl'),
-    almUsername: getInput('almUsername'),
-    almPassword: getInput('almPassword'),
-    almDomain: getInput('almDomain'),
-    almProject: getInput('almProject'),
-    almSSOEnabled: getInput('almSSOEnabled').toLowerCase() === 'true',
-    almClientId: getInput('almClientId'),
-    almApiKeySecret: getInput('almApiKeySecret'),
-    almRunMode: getInput('almRunMode').toUpperCase(),
-    almRunHost: getInput('almRunHost'),
-    almTestSetRunOrderByCriteria: getInput('almTestSetRunOrderByCriteria'),
-    almTimeout: Number.parseInt(getInput('almTimeout')),
     owner: owner,
     repo: repo,
     repoUrl: `${serverUrl}/${owner}/${repo}.git`,
@@ -132,6 +108,23 @@ try {
     failIfNotPassed: getInput('failIfNotPassed').toLowerCase() === 'true',
     runnerWsPath: process.env.RUNNER_WORKSPACE! // e.g., C:\GitHub_runner\_work\ufto-tests\
   };
+  if (_config.runType.toLowerCase() === 'alm') {
+    _config.alm = {
+      testSets: getUnquotedInputEx('almTestSets'),
+      serverUrl: getInput('almServerUrl'),
+      username: getInput('almUsername'),
+      password: getInput('almPassword'),
+      domain: getInput('almDomain'),
+      project: getInput('almProject'),
+      isSSO: getInput('almSSOEnabled').toLowerCase() === 'true',
+      clientId: getInput('almClientId'),
+      apiKeySecret: getInput('almApiKeySecret'),
+      runMode: getInput('almRunMode').toUpperCase(),
+      runHost: getInput('almRunHost'),
+      testSetRunOrderByCriteria: getInput('almTestSetRunOrderByCriteria'),
+      timeout: Number.parseInt(getInput('almTimeout'))
+    }
+  }
 } catch (error: any) {
   errorLoadingConfig = error.message;
 }

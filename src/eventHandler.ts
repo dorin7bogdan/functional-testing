@@ -87,7 +87,7 @@ export const handleCurrentEvent = async (): Promise<void> => {
       throw new Error(`Not yet implemented, runType: ${runType}`);
     case RunType.ALM:
       validateAlmProps();
-      testOrTestSetPaths = config.almTestSets;
+      testOrTestSetPaths = config.alm!.testSets;
       break;
     case RunType.ALMLab:
       throw new Error(`Not yet implemented, runType: ${runType}`);
@@ -100,7 +100,7 @@ export const handleCurrentEvent = async (): Promise<void> => {
   setOutput('exitCode', `${exitCode}`);
   setOutput('status', status);
 
-  logger.info(`END handleEvent. ExitCode=${exitCode}`);
+  logger.info(`END handleEvent. ExitCode=${exitCode}, Status=${status}`);
   // END of handleCurrentEvent function - the rest are helper functions
 
   if (exitCode !== ExitCode.Passed && config.failIfNotPassed) {
@@ -302,40 +302,40 @@ const validateAndGetRunType = (): RunType => {
 }
 const validateAlmProps = (): void => {
   logger.debug(`validateAlmProps ...`);
-
-  if (!config.almTestSets || config.almTestSets.length === 0) {
+  const alm = config.alm;
+  if (!alm || !alm.testSets || alm.testSets.length === 0) {
     throw new Error(`Missing almTestSets value`);
   }
 
-  const runMode = config.almRunMode;
+  const runMode = alm.runMode;
   const allowedModes = ["LOCAL", "REMOTE", "PLANNED_HOST"];
   if (!allowedModes.includes(runMode)) {
     throw new Error(`Invalid almRunMode value '${runMode}'. Allowed: ${allowedModes.join(', ')}`);
   }
-  if (runMode === "REMOTE" && !config.almRunHost) {
+  if (runMode === "REMOTE" && !alm.runHost) {
     throw new Error(`almRunHost is required when almRunMode is '${runMode}'`);
   }
 
   const urlPattern = /^https?:\/\/[^\/]+\/qcbin\/?$/i;
-  if (!urlPattern.test(config.almServerUrl)) {
-    throw new Error(`Invalid almServerUrl value '${config.almServerUrl}'. Expected format: http(s)://{hostname-or-ip}[:{port}]/qcbin`);
+  if (!urlPattern.test(alm.serverUrl)) {
+    throw new Error(`Invalid almServerUrl value '${alm.serverUrl}'. Expected format: http(s)://{hostname-or-ip}[:{port}]/qcbin`);
   }
-  if (config.almSSOEnabled) {
-    if (!config.almClientId)
+  if (alm.isSSO) {
+    if (!alm.clientId)
       throw new Error(`almClientId is required when almSSOEnabled is true`);
-    if (!config.almApiKeySecret)
+    if (!alm.apiKeySecret)
       throw new Error(`almApiKeySecret is required when almSSOEnabled is true`);
-  } else if (!config.almUsername) {
+  } else if (!alm.username) {
     throw new Error(`almUsername is required when almSSOEnabled is false`);
   }
-  if (!config.almDomain) {
+  if (!alm.domain) {
     throw new Error(`almDomain is required`);
   }
-  if (!config.almProject) {
+  if (!alm.project) {
     throw new Error(`almProject is required`);
   }
 
-  const criteria = config.almTestSetRunOrderByCriteria;
+  const criteria = alm.testSetRunOrderByCriteria;
   const allowedCriterias = ["NAME", "ID"];
   if (!allowedCriterias.includes(criteria)) {
     throw new Error(`Invalid almTestSetRunOrderByCriteria value '${criteria}'. Allowed: ${allowedCriterias.join(', ')}`);
