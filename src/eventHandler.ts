@@ -122,7 +122,7 @@ export const handleCurrentEvent = async (): Promise<void> => {
       return exitCode;
     } catch (error) {
       logger.error(`run: ${error}`);
-      return ExitCode.Aborted;
+      return ExitCode.Unknown;
     } finally {
       if (config.cleanupTestRunFiles) {
         await cleanupReportFolders(reportPaths);
@@ -238,11 +238,35 @@ const cleanupTempFiles = async (fileNames: string[]) => {
       const fullPathFile = path.join(config.runnerWsPath, fileName);
       try {
         await fs.promises.rm(fullPathFile, { force: true });
+        logger.debug(`cleanupTempFiles: Deleted "${fileName}"`);
       } catch (error) {
-        logger.warn(`cleanupTempFiles: Failed to delete ${fullPathFile}: ${error}`);
+        logger.warn(`cleanupTempFiles: Failed to delete "${fullPathFile}": ${error}`);
       }
     }
   }));
+  // Find and remove all timestamped files matching pattern: (props|results|params)_ddMMyyyyHHmmssfff.(txt|xml)
+  try {
+    const entries = await fs.promises.readdir(config.runnerWsPath, { withFileTypes: true });
+    const pattern = /^(props|results|params)_\d{17}\.(txt|xml)$/;
+    const tempFiles = entries
+      .filter(entry => entry.isFile() && pattern.test(entry.name))
+      .map(entry => entry.name);
+
+    if (tempFiles.length) {
+      logger.debug(`cleanupTempFiles: Found ${tempFiles.length} timestamped files to clean up`);
+      await Promise.all(tempFiles.map(async (file) => {
+        const fullPath = path.join(config.runnerWsPath, file);
+        try {
+          await fs.promises.rm(fullPath, { force: true });
+          logger.debug(`cleanupTempFiles: Deleted "${file}"`);
+        } catch (error) {
+          logger.warn(`cleanupTempFiles: Failed to delete "${fullPath}": ${error}`);
+        }
+      }));
+    }
+  } catch (error) {
+    logger.warn(`cleanupTempFiles: Failed to read directory for cleanup: ${error}`);
+  }
 }
 
 const cleanupReportFolders = async (reportPaths: string[]) => {

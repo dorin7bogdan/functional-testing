@@ -91,7 +91,7 @@ const getFileIfExist = async (dirPath: string, fileName: string): Promise<string
   }
 }
 
-const getTimestamp = (): string => { // ddMMyyyyHHmmssSSS
+const getTimestamp = (): string => { // ddMMyyyyHHmmssfff
   const now = new Date();
   const pad = (n: number, width = 2) => n.toString().padStart(width, '0');
 

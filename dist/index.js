@@ -137073,7 +137073,7 @@ const handleCurrentEvent = async () => {
         }
         catch (error) {
             eventHandler_logger.error(`run: ${error}`);
-            return ExitCode_ExitCode.Aborted;
+            return ExitCode_ExitCode.Unknown;
         }
         finally {
             if (config.cleanupTestRunFiles) {
@@ -137176,12 +137176,37 @@ const cleanupTempFiles = async (fileNames) => {
             const fullPathFile = external_path_.join(config.runnerWsPath, fileName);
             try {
                 await fs_extra_lib.promises.rm(fullPathFile, { force: true });
+                eventHandler_logger.debug(`cleanupTempFiles: Deleted "${fileName}"`);
             }
             catch (error) {
-                eventHandler_logger.warn(`cleanupTempFiles: Failed to delete ${fullPathFile}: ${error}`);
+                eventHandler_logger.warn(`cleanupTempFiles: Failed to delete "${fullPathFile}": ${error}`);
             }
         }
     }));
+    // Find and remove all timestamped files matching pattern: (props|results|params)_ddMMyyyyHHmmssfff.(txt|xml)
+    try {
+        const entries = await fs_extra_lib.promises.readdir(config.runnerWsPath, { withFileTypes: true });
+        const pattern = /^(props|results|params)_\d{17}\.(txt|xml)$/;
+        const tempFiles = entries
+            .filter(entry => entry.isFile() && pattern.test(entry.name))
+            .map(entry => entry.name);
+        if (tempFiles.length) {
+            eventHandler_logger.debug(`cleanupTempFiles: Found ${tempFiles.length} timestamped files to clean up`);
+            await Promise.all(tempFiles.map(async (file) => {
+                const fullPath = external_path_.join(config.runnerWsPath, file);
+                try {
+                    await fs_extra_lib.promises.rm(fullPath, { force: true });
+                    eventHandler_logger.debug(`cleanupTempFiles: Deleted "${file}"`);
+                }
+                catch (error) {
+                    eventHandler_logger.warn(`cleanupTempFiles: Failed to delete "${fullPath}": ${error}`);
+                }
+            }));
+        }
+    }
+    catch (error) {
+        eventHandler_logger.warn(`cleanupTempFiles: Failed to read directory for cleanup: ${error}`);
+    }
 };
 const cleanupReportFolders = async (reportPaths) => {
     eventHandler_logger.debug(`cleanupReportFolders: reportPaths.length = ${reportPaths.length} ...`);
