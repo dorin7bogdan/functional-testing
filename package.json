@@ -29,8 +29,6 @@
     "fs-extra": "^11.3.5",
     "sax": "^1.6.0",
     "tsx": "^4.21.0",
-    "xml2js": "^0.6.2",
-    "xmlbuilder": "^15.1.1",
     "yaml": "^2.9.0"
   },
   "overrides": {},
@@ -38,7 +36,6 @@
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^24.12.4",
     "@types/sax": "^1.2.7",
-    "@types/xml2js": "^0.4.14",
     "@vercel/ncc": "^0.38.4",
     "lint-staged": "^17.0.4",
     "ts-node": "^10.9.2",
@@ -58,5 +55,8 @@
   "bugs": {
     "url": "https://github.com/opentext/functional-testing/issues"
   },
-  "homepage": "https://github.com/opentext/functional-testing#readme"
+  "homepage": "https://github.com/opentext/functional-testing#readme",
+  "allowScripts": {
+    "esbuild@0.28.1": true
+  }
 }

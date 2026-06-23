@@ -29,7 +29,7 @@
 
 import { context } from '@actions/github';
 import { getInput } from '@actions/core';
-import AlmConfig from './almConfig.js';
+import { AlmCommonConfig, AlmConfig, AlmLabConfig }  from './almConfig.js';
 import { RunType } from '../dto/RunType.js';
 
 interface Config {
@@ -41,6 +41,7 @@ interface Config {
   resultUnifiedTestClassname: boolean;
   githubToken?: string;
   alm?: AlmConfig;
+  almLab?: AlmLabConfig;
   owner: string;
   repo: string;
   repoUrl: string;
@@ -130,9 +131,8 @@ try {
       cancelRunOnFailure: getInput('cancelRunOnFailure').toLowerCase() === 'true',
       ..._config
     }
-  } else if (_config.runType === RunType.ALM) {
-    _config.alm = {
-      testSets: getUnquotedInputEx('almTestSets'),
+  } else if (_config.runType === RunType.ALM || _config.runType === RunType.ALMLab) {
+    const almCommConfig = {
       serverUrl: getInput('almServerUrl'),
       username: getInput('almUsername'),
       password: getInput('almPassword'),
@@ -143,8 +143,22 @@ try {
       apiKeySecret: getInput('almApiKeySecret'),
       runMode: getInput('almRunMode').toUpperCase(),
       runHost: getInput('almRunHost'),
-      testSetRunOrderByCriteria: getInput('almTestSetRunOrderByCriteria'),
       timeout: Number.parseInt(getInput('almTimeout'))
+    }
+    if (_config.runType === RunType.ALM) {
+      _config.alm = {
+        testSets: getUnquotedInputEx('almTestSets'),
+        testSetsOrderByCriteria: getInput('almTestSetsOrderByCriteria'),
+        ...almCommConfig
+      }
+    } else if (_config.runType === RunType.ALMLab) {
+      _config.almLab = {
+        testSetId: Number.parseInt(getInput('almTestSetId')),
+        bvsId: Number.parseInt(getInput('almBvsId')),
+        duration: Number.parseInt(getInput('almTimeslotDuration')),
+        envConfigId: Number.parseInt(getInput('almEnvConfigId')),
+        ...almCommConfig
+      }
     }
   }
 } catch (error: any) {

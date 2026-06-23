@@ -32,13 +32,9 @@ import { TestResult } from './TestResult.js';
 const logger: Logger = new Logger('JUnitParser');
 
 export default class JUnitParser {
-  private readonly keepLongStdio: boolean;
-  private readonly xmlResFileName: string;
-
-  constructor(xmlResFileName: string, keepLongStdio: boolean = true) {
-    this.keepLongStdio = keepLongStdio;
-    this.xmlResFileName = xmlResFileName;
-  }
+  constructor(
+    private readonly xmlResFileName: string,
+    private readonly keepLongStdio: boolean = true) {}
 
   public async parseResult(): Promise<TestResult> {
     logger.info(`parseResult: "${this.xmlResFileName}" ...`);

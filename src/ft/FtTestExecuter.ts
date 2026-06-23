@@ -111,7 +111,7 @@ export default class FtTestExecuter {
       almApiKeySecret: alm.isSSO ? enc.encrypt(alm.apiKeySecret) : "",
       almRunMode: `RUN_${alm.runMode}`,
       almRunHost: alm.runHost,
-      almTestSetRunOrderByCriteria: alm.testSetRunOrderByCriteria,
+      almTestSetsOrderByCriteria: alm.testSetsOrderByCriteria,
       almTimeout: `${alm.timeout}`,
       resultsFilename: xmlResFileName,
       resultTestNameOnly: `${config.resultTestNameOnly}`,

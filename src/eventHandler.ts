@@ -39,6 +39,7 @@ import * as fs from 'fs-extra';
 import JUnitParser from './reporting/JUnitParser.js';
 import { RunType } from './dto/RunType.js';
 import { checkoutRepo } from './utils/utils.js';
+import AlmLabManager from './alm-lab/almLabManager.js';
 
 const logger: Logger = new Logger('eventHandler');
 const JUNIT_RES_XML = 'junit-results.xml';
@@ -90,7 +91,8 @@ export const handleCurrentEvent = async (): Promise<void> => {
       testOrTestSetPaths = config.alm!.testSets;
       break;
     case RunType.ALMLab:
-      throw new Error(`Not yet implemented, runType: ${runType}`);
+      validateAlmLabProps();
+      break;
     default:
       throw new Error(`Unsupported runType: ${runType}`);
   }
@@ -113,11 +115,17 @@ export const handleCurrentEvent = async (): Promise<void> => {
     let xmlResFileName: string | undefined;
     let encryptionKey: string | undefined;
     let reportPaths: string[] = [];
+    let exitCode = ExitCode.Unknown;
     try {
-      ({ propsFileName, xmlResFileName, encryptionKey } = await FtTestExecuter.preProcess(runType, testOrTestSetPaths));
-      const exitCode = await FtTestExecuter.process(propsFileName, encryptionKey);
-      reportPaths = await buildJUnitReport(xmlResFileName);
-      await uploadArtifacts(propsFileName, xmlResFileName, reportPaths);
+      if ([RunType.FS, RunType.ALM].includes(runType)) {
+        ({ propsFileName, xmlResFileName, encryptionKey } = await FtTestExecuter.preProcess(runType, testOrTestSetPaths));
+        exitCode = await FtTestExecuter.process(propsFileName, encryptionKey);
+        reportPaths = await buildJUnitReport(xmlResFileName);
+        await uploadArtifacts(propsFileName, xmlResFileName, reportPaths);
+      } else if (runType === RunType.ALMLab) {
+        exitCode = await AlmLabManager.run();
+        //TODO buildJUnitReport + uploadArtifacts
+      }
       logger.info(`END run: ExitCode=${exitCode}.`);
       return exitCode;
     } catch (error) {
@@ -289,6 +297,48 @@ const validateAlmProps = (): void => {
     throw new Error(`Missing almTestSets value`);
   }
 
+  validateAlmCommonProps(alm);
+
+  const criteria = alm.testSetsOrderByCriteria;
+  const allowedCriterias = ["name", "id"];
+  if (!allowedCriterias.includes(criteria)) {
+    throw new Error(`Invalid almTestSetRunOrderByCriteria value '${criteria}'. Allowed: ${allowedCriterias.join(', ')}`);
+  }
+}
+
+const validateAlmLabProps = (): void => {
+  logger.debug('validateAlmLabProps ...');
+  const almLab = config.almLab;
+  if (!almLab) {
+    throw new Error('Missing alm-lab configuration');
+  }
+  if ((Number.isNaN(almLab.testSetId) || almLab.testSetId! <= 0) &&
+    (Number.isNaN(almLab.bvsId) || almLab.bvsId! <= 0)) {
+    throw new Error('Either "almTestSetId" or "almBvsId" must be a positive integer');
+  } else if (almLab.testSetId! > 0 && almLab.bvsId! > 0) {
+    throw new Error('Only one of "almTestSetId" or "almBvsId" can be specified');
+  }
+  if (Number.isNaN(almLab.duration) || almLab.duration! <= 0) {
+    throw new Error('The value of "almTimeslotDuration" must be a positive integer');
+  }
+  if (Number.isInteger(almLab.envConfigId) && almLab.envConfigId! <= 0) {
+    throw new Error('The value of "almEnvConfigId" must be a positive integer');
+  }
+
+  validateAlmCommonProps(almLab);
+}
+
+const validateAlmCommonProps = (alm: {
+  serverUrl: string;
+  username: string;
+  domain: string;
+  project: string;
+  isSSO: boolean;
+  clientId: string;
+  apiKeySecret: string;
+  runMode: string;
+  runHost: string;
+}): void => {
   const runMode = alm.runMode;
   const allowedModes = ["LOCAL", "REMOTE", "PLANNED_HOST"];
   if (!allowedModes.includes(runMode)) {
@@ -315,12 +365,6 @@ const validateAlmProps = (): void => {
   }
   if (!alm.project) {
     throw new Error(`almProject is required`);
-  }
-
-  const criteria = alm.testSetRunOrderByCriteria;
-  const allowedCriterias = ["NAME", "ID"];
-  if (!allowedCriterias.includes(criteria)) {
-    throw new Error(`Invalid almTestSetRunOrderByCriteria value '${criteria}'. Allowed: ${allowedCriterias.join(', ')}`);
   }
 }
 
