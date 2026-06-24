@@ -6,24 +6,24 @@ const SUCCESS_STATUS = 'SuccessStaus';
 const INFO = 'info';
 
 export default class RunResponse {
-  private successStatus = '';
-  private runId = '';
+  private _status = '';
+  private _id = '';
 
   public initialize(response: Response): void {
     const xml = response.toString();
-    this.successStatus = Xml.getAttributeValue(xml, SUCCESS_STATUS);
-    this.runId = this.parseRunId(Xml.getAttributeValue(xml, INFO));
+    this._status = Xml.getAttributeValue(xml, SUCCESS_STATUS);
+    this._id = this.parseRunId(Xml.getAttributeValue(xml, INFO));
   }
 
-  private parseRunId(runIdResponse: string): string {
-    return runIdResponse?.trim() ? runIdResponse : Constants.NO_RUN_ID;
+  private parseRunId(runId: string): string {
+    return runId?.trim() ? runId : Constants.NO_RUN_ID;
   }
 
-  public getRunId(): string {
-    return this.runId;
+  public get id(): string {
+    return this._id;
   }
 
-  public hasSucceeded(): boolean {
-    return this.successStatus === Constants.ONE;
+  public get isOK(): boolean {
+    return this._status === Constants.ONE;
   }
 }

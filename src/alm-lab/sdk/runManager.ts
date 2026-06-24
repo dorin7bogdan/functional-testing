@@ -36,6 +36,7 @@ export default class RunManager {
   }
 
   public onRunIdGenerated(handler: RunIdHandler): void {
+    logger.debug('onRunIdGenerated: Adding a new runId handler');
     this.runIdHandlers.push(handler);
   }
 
@@ -71,7 +72,7 @@ export default class RunManager {
     if (this.isOk(res)) {
       const runResponse = this.runHandler.getRunResponse(res);
       await this.setRunId(runResponse);
-      ok = runResponse.hasSucceeded();
+      ok = runResponse.isOK;
     }
     await this.logReportUrl(ok);
     return ok;
@@ -96,17 +97,19 @@ export default class RunManager {
     }
   }
 
-  private async setRunId(runResponse: RunResponse): Promise<void> {
-    const runId = runResponse.getRunId();
-    if (!runId || runId === Constants.NO_RUN_ID) {
+  private async setRunId(runRes: RunResponse): Promise<void> {
+    logger.debug(`setRunId: runRes=${runRes.toString()}`);
+    const id = runRes.id;
+    if (!id || id === Constants.NO_RUN_ID) {
       logger.error(Constants.NO_RUN_ID);
       throw new Error(Constants.NO_RUN_ID);
     }
 
-    this.runHandler.setRunId(runId);
-    this.pollHandler.setRunId(runId);
+    this.runHandler.setRunId(id);
+    this.pollHandler.setRunId(id);
+    logger.debug(`setRunId: runIdHandlers.length=${this.runIdHandlers.length}`);
     for (const handler of this.runIdHandlers) {
-      await handler(runId);
+      await handler(id);
     }
   }
 

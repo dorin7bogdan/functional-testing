@@ -146248,21 +146248,21 @@ class LabPublisher extends Publisher {
 const SUCCESS_STATUS = 'SuccessStaus';
 const INFO = 'info';
 class RunResponse {
-    successStatus = '';
-    runId = '';
+    _status = '';
+    _id = '';
     initialize(response) {
         const xml = response.toString();
-        this.successStatus = Xml.getAttributeValue(xml, SUCCESS_STATUS);
-        this.runId = this.parseRunId(Xml.getAttributeValue(xml, INFO));
+        this._status = Xml.getAttributeValue(xml, SUCCESS_STATUS);
+        this._id = this.parseRunId(Xml.getAttributeValue(xml, INFO));
     }
-    parseRunId(runIdResponse) {
-        return runIdResponse?.trim() ? runIdResponse : constants_Constants.NO_RUN_ID;
+    parseRunId(runId) {
+        return runId?.trim() ? runId : constants_Constants.NO_RUN_ID;
     }
-    getRunId() {
-        return this.runId;
+    get id() {
+        return this._id;
     }
-    hasSucceeded() {
-        return this.successStatus === constants_Constants.ONE;
+    get isOK() {
+        return this._status === constants_Constants.ONE;
     }
 }
 
@@ -146915,6 +146915,7 @@ class RunManager {
         this.pollHandler = new PollHandlerFactory().create(client, args.runType, args.entityId);
     }
     onRunIdGenerated(handler) {
+        runManager_logger.debug('onRunIdGenerated: Adding a new runId handler');
         this.runIdHandlers.push(handler);
     }
     async execute() {
@@ -146942,7 +146943,7 @@ class RunManager {
         if (this.isOk(res)) {
             const runResponse = this.runHandler.getRunResponse(res);
             await this.setRunId(runResponse);
-            ok = runResponse.hasSucceeded();
+            ok = runResponse.isOK;
         }
         await this.logReportUrl(ok);
         return ok;
@@ -146967,16 +146968,18 @@ class RunManager {
             runManager_logger.error(`${errMsg}\n${note}`);
         }
     }
-    async setRunId(runResponse) {
-        const runId = runResponse.getRunId();
-        if (!runId || runId === constants_Constants.NO_RUN_ID) {
+    async setRunId(runRes) {
+        runManager_logger.debug(`setRunId: runRes=${runRes.toString()}`);
+        const id = runRes.id;
+        if (!id || id === constants_Constants.NO_RUN_ID) {
             runManager_logger.error(constants_Constants.NO_RUN_ID);
             throw new Error(constants_Constants.NO_RUN_ID);
         }
-        this.runHandler.setRunId(runId);
-        this.pollHandler.setRunId(runId);
+        this.runHandler.setRunId(id);
+        this.pollHandler.setRunId(id);
+        runManager_logger.debug(`setRunId: runIdHandlers.length=${this.runIdHandlers.length}`);
         for (const handler of this.runIdHandlers) {
-            await handler(runId);
+            await handler(id);
         }
     }
     isOk(response) {
