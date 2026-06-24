@@ -146304,16 +146304,19 @@ class PostRequest extends PostRequestBase {
 
 ;// CONCATENATED MODULE: ./src/alm-lab/sdk/request/startRunEntityRequest.ts
 
+
 const startRunEntityRequest_DURATION = 'duration';
 const VUDS_MODE = 'vudsMode';
 const RESERVATION_ID = 'reservationId';
 const MINUS_ONE = '-1';
 const VALUE_SET_ID = 'valueSetId';
+const startRunEntityRequest_logger = new Logger('StartRunEntityRequest');
 class StartRunEntityRequest extends PostRequest {
     reqSuffix;
     duration;
     envConfigId;
     constructor(client, reqSuffix, runId, duration, envConfigId) {
+        startRunEntityRequest_logger.debug(`ctor: reqSuffix=${reqSuffix}, runId=${runId}, duration=${duration}, envConfigId=${envConfigId}`);
         super(client, runId);
         this.reqSuffix = reqSuffix;
         this.duration = duration;
@@ -146363,11 +146366,15 @@ class HandlerBase {
 
 
 
+
+const runHandler_logger = new Logger('RunHandler');
 class RunHandler extends HandlerBase {
     constructor(client, entityId) {
+        runHandler_logger.debug(`ctor: entityId=${entityId}`);
         super(client, entityId);
     }
     async start(duration, envConfigId) {
+        runHandler_logger.debug(`start: duration=${duration}, envConfigId=${envConfigId}`);
         return await new StartRunEntityRequest(this.client, this.startSuffix, this.entityId, duration, envConfigId).execute();
     }
     async reportUrl(args) {
@@ -146938,6 +146945,7 @@ class RunManager {
         return await publisher.publish(this.args.serverUrl, this.args.domain, this.args.project);
     }
     async start() {
+        runManager_logger.debug(`start ...`);
         let ok = false;
         const res = await this.runHandler.start(this.args.duration, this.args.environmentConfigurationId);
         if (this.isOk(res)) {
@@ -146983,6 +146991,7 @@ class RunManager {
         }
     }
     isOk(response) {
+        runManager_logger.debug(`isOk: response=${response.toString()}`);
         if (response.isOK) {
             runManager_logger.info(`Executing ${this.args.runType} ID: ${this.args.entityId} in ${this.args.domain}/${this.args.project}`);
             return true;

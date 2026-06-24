@@ -1,3 +1,4 @@
+import Logger from '../../../utils/logger.js';
 import IClient from '../interface/iClient.js';
 import PostRequest from './postRequest.js';
 
@@ -6,9 +7,11 @@ const VUDS_MODE = 'vudsMode';
 const RESERVATION_ID = 'reservationId';
 const MINUS_ONE = '-1';
 const VALUE_SET_ID = 'valueSetId';
+const logger = new Logger('StartRunEntityRequest');
 
 export default class StartRunEntityRequest extends PostRequest {
   constructor(client: IClient, private readonly reqSuffix: string, runId: string, private readonly duration: string, private readonly envConfigId: string) {
+    logger.debug(`ctor: reqSuffix=${reqSuffix}, runId=${runId}, duration=${duration}, envConfigId=${envConfigId}`);
     super(client, runId);
   }
 

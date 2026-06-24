@@ -67,6 +67,7 @@ export default class RunManager {
   }
 
   private async start(): Promise<boolean> {
+    logger.debug(`start ...`);
     let ok = false;
     const res = await this.runHandler.start(this.args.duration, this.args.environmentConfigurationId);
     if (this.isOk(res)) {
@@ -114,6 +115,7 @@ export default class RunManager {
   }
 
   private isOk(response: Response): boolean {
+    logger.debug(`isOk: response=${response.toString()}`);
     if (response.isOK) {
       logger.info(`Executing ${this.args.runType} ID: ${this.args.entityId} in ${this.args.domain}/${this.args.project}`);
       return true;
