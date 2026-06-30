@@ -91,10 +91,12 @@ export default class RestClient implements IClient {
                         resxAccessLevel: ResxAccessLevel = ResxAccessLevel.PUBLIC): Promise<Response> {
     try {
       logger.debug(`POST ${url}`);
-
+      const hdrs = this.decorateRequestHeaders(headers, resxAccessLevel);
+      logger.debug(`HEADERS: ${JSON.stringify(headersToObject(hdrs))}`);
+      logger.debug(`BODY: ${body}`);
       const response = await fetch(url, {
         method: 'POST',
-        headers: this.decorateRequestHeaders(headers, resxAccessLevel),
+        headers: hdrs,
         body: body ?? ''
       });
       this.updateCookies(response.headers);

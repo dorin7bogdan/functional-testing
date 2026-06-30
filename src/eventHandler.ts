@@ -318,10 +318,10 @@ const validateAlmLabProps = (): void => {
   } else if (almLab.testSetId! > 0 && almLab.bvsId! > 0) {
     throw new Error('Only one of "almTestSetId" or "almBvsId" can be specified');
   }
-  if (Number.isNaN(almLab.duration) || almLab.duration! <= 0) {
+  if (Number.isNaN(almLab.duration) || almLab.duration <= 0) {
     throw new Error('The value of "almTimeslotDuration" must be a positive integer');
   }
-  if (Number.isInteger(almLab.envConfigId) && almLab.envConfigId! <= 0) {
+  if (Number.isNaN(almLab.envConfigId) || almLab.envConfigId < 0) {
     throw new Error('The value of "almEnvConfigId" must be a positive integer');
   }
 

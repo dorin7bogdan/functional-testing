@@ -145680,9 +145680,12 @@ class RestClient {
     async httpPost(url, headers, body, resxAccessLevel = ResxAccessLevel.PUBLIC) {
         try {
             restClient_logger.debug(`POST ${url}`);
+            const hdrs = this.decorateRequestHeaders(headers, resxAccessLevel);
+            restClient_logger.debug(`HEADERS: ${JSON.stringify(headersToObject(hdrs))}`);
+            restClient_logger.debug(`BODY: ${body}`);
             const response = await fetch(url, {
                 method: 'POST',
-                headers: this.decorateRequestHeaders(headers, resxAccessLevel),
+                headers: hdrs,
                 body: body ?? ''
             });
             this.updateCookies(response.headers);
@@ -147446,7 +147449,7 @@ const validateAlmLabProps = () => {
     if (Number.isNaN(almLab.duration) || almLab.duration <= 0) {
         throw new Error('The value of "almTimeslotDuration" must be a positive integer');
     }
-    if (Number.isInteger(almLab.envConfigId) && almLab.envConfigId <= 0) {
+    if (Number.isNaN(almLab.envConfigId) || almLab.envConfigId < 0) {
         throw new Error('The value of "almEnvConfigId" must be a positive integer');
     }
     validateAlmCommonProps(almLab);
