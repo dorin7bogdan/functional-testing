@@ -37,11 +37,11 @@ export interface AlmCommonConfig {
   apiKeySecret: string;
   runMode: string;
   runHost: string;
-  timeout: number;
 }
 
 export interface AlmConfig extends AlmCommonConfig {
   testSets: string[];
+  timeout: number;
   testSetsOrderByCriteria: string;
 }
 export interface AlmLabConfig extends AlmCommonConfig {

@@ -46,7 +46,7 @@ export default class AlmLabManager {
       entityId,
       c.domain,
       c.project,
-      c.timeout,
+      c.duration,
       c.envConfigId
     );
 

@@ -147099,7 +147099,7 @@ class AlmLabManager {
         }
         const runType = this.resolveRunType(c.testSetId, c.bvsId);
         const entityId = runType === constants_Constants.BVS ? c.bvsId : c.testSetId;
-        const args = new Args(c.serverUrl, runType, entityId, c.domain, c.project, c.timeout, c.envConfigId);
+        const args = new Args(c.serverUrl, runType, entityId, c.domain, c.project, c.duration, c.envConfigId);
         const cred = c.isSSO ?
             new Credentials(true, c.clientId, c.apiKeySecret) :
             new Credentials(false, c.username, c.password);
