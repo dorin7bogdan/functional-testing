@@ -4,7 +4,7 @@ import { WebHeaders } from '../response.js';
 import GetRequest from './getRequest.js';
 
 export default class GetLabRunEntityTestSetRunsRequest extends GetRequest {
-  constructor(client: IClient, runId: string) {
+  constructor(client: IClient, runId: number) {
     super(client, runId);
   }
 

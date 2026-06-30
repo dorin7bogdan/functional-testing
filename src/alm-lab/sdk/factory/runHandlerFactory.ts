@@ -5,7 +5,7 @@ import RunHandler from '../handler/runHandler.js';
 import TestSetRunHandler from '../handler/testSetRunHandler.js';
 
 export default class RunHandlerFactory {
-  public create(client: IClient, runType: LabRunType, entityId: string): RunHandler {
+  public create(client: IClient, runType: LabRunType, entityId: number): RunHandler {
     switch (runType) {
       case Constants.BVS:
         return new BvsRunHandler(client, entityId);

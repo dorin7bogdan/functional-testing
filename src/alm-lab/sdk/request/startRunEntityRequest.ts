@@ -10,19 +10,19 @@ const VALUE_SET_ID = 'valueSetId';
 const logger = new Logger('StartRunEntityRequest');
 
 export default class StartRunEntityRequest extends PostRequest {
-  constructor(client: IClient, private readonly reqSuffix: string, runId: string, private readonly duration: string, private readonly envConfigId: string) {
+  constructor(client: IClient, private readonly reqSuffix: string, runId: number, private readonly duration: number, private readonly envConfigId: number) {
     logger.debug(`ctor: reqSuffix=${reqSuffix}, runId=${runId}, duration=${duration}, envConfigId=${envConfigId}`);
     super(client, runId);
   }
 
   protected override get dataFields(): Array<[string, string]> {
     const fields: Array<[string, string]> = [
-      [DURATION, this.duration],
+      [DURATION, `${this.duration}`],
       [VUDS_MODE, 'false'],
       [RESERVATION_ID, MINUS_ONE]
     ];
-    if (this.envConfigId?.trim()) {
-      fields.push([VALUE_SET_ID, this.envConfigId]);
+    if (this.envConfigId) {
+      fields.push([VALUE_SET_ID, `${this.envConfigId}`]);
     }
     return fields;
   }

@@ -9,7 +9,7 @@ const NAME = 'name';
 const logger = new Logger('LabPublisher');
 
 export default class LabPublisher extends Publisher {
-  constructor(client: IClient, entityId: string, runId: string, nameSuffix: string) {
+  constructor(client: IClient, entityId: number, runId: number, nameSuffix: string) {
     super(client, entityId, runId, nameSuffix);
   }
 
@@ -28,7 +28,7 @@ export default class LabPublisher extends Publisher {
     return name;
   }
 
-  protected override getRunEntityTestSetRunsRequest(client: IClient, runId: string): GetRequest {
+  protected override getRunEntityTestSetRunsRequest(client: IClient, runId: number): GetRequest {
     return new GetLabRunEntityTestSetRunsRequest(client, runId);
   }
 }

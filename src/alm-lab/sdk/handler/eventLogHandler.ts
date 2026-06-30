@@ -15,7 +15,7 @@ export default class EventLogHandler extends HandlerBase {
 
   constructor(
     client: IClient,
-    private readonly runTimeslotId: string) {
+    private readonly runTimeslotId: number) {
       super(client, runTimeslotId);
   }
 

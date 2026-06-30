@@ -145522,15 +145522,15 @@ class Args {
     domain;
     project;
     duration;
-    environmentConfigurationId;
-    constructor(serverUrl, runType, entityId, domain, project, duration = "", environmentConfigurationId = "") {
+    envConfigId;
+    constructor(serverUrl, runType, entityId, domain, project, duration, envConfigId) {
         this.serverUrl = serverUrl;
         this.runType = runType;
         this.entityId = entityId;
         this.domain = domain;
         this.project = project;
         this.duration = duration;
-        this.environmentConfigurationId = environmentConfigurationId;
+        this.envConfigId = envConfigId;
     }
 }
 
@@ -146324,12 +146324,12 @@ class StartRunEntityRequest extends PostRequest {
     }
     get dataFields() {
         const fields = [
-            [startRunEntityRequest_DURATION, this.duration],
+            [startRunEntityRequest_DURATION, `${this.duration}`],
             [VUDS_MODE, 'false'],
             [RESERVATION_ID, MINUS_ONE]
         ];
-        if (this.envConfigId?.trim()) {
-            fields.push([VALUE_SET_ID, this.envConfigId]);
+        if (this.envConfigId) {
+            fields.push([VALUE_SET_ID, `${this.envConfigId}`]);
         }
         return fields;
     }
@@ -146342,8 +146342,8 @@ class StartRunEntityRequest extends PostRequest {
 class HandlerBase {
     client;
     entityId;
-    runId = '';
-    timeslotId = '';
+    runId = 0;
+    timeslotId = 0;
     constructor(client, entityId, runId) {
         this.client = client;
         this.entityId = entityId;
@@ -146593,7 +146593,7 @@ class LabPollHandler extends PollHandler {
         if (res.isOK) {
             this.setTimeslotId(res);
             this.eventLogHandler = new EventLogHandler(this.client, this.timeslotId);
-            if (this.timeslotId.trim().length > 0) {
+            if (this.timeslotId) {
                 ok = await super.doPoll();
             }
         }
@@ -146642,10 +146642,9 @@ class LabPollHandler extends PollHandler {
         return await new GetLabRunEntityDataRequest(this.client, this.runId).execute();
     }
     setTimeslotId(runEntityResponse) {
-        this.timeslotId = this.getTimeslotId(runEntityResponse);
-        if (this.timeslotId.trim().length > 0) {
-            labPollHandler_logger.info(`Timeslot id: ${this.timeslotId}`);
-        }
+        const tsId = this.getTimeslotId(runEntityResponse);
+        labPollHandler_logger.info(`Timeslot id: ${tsId}`);
+        this.timeslotId = parseInt(tsId, 10);
     }
     async getRunEntityData() {
         return await new GetLabRunEntityDataRequest(this.client, this.runId).execute();
@@ -146866,7 +146865,7 @@ class GetTestInstancesRequest extends GetRequestBase {
     testSetIds;
     constructor(client, testsetIds) {
         super(client);
-        this.testSetIds = Array.isArray(testsetIds) ? testsetIds.join(OR) : testsetIds;
+        this.testSetIds = Array.isArray(testsetIds) ? testsetIds.join(OR) : `${testsetIds}`;
     }
     get suffix() {
         return 'test-instances';
@@ -146947,7 +146946,7 @@ class RunManager {
     async start() {
         runManager_logger.debug(`start ...`);
         let ok = false;
-        const res = await this.runHandler.start(this.args.duration, this.args.environmentConfigurationId);
+        const res = await this.runHandler.start(this.args.duration, this.args.envConfigId);
         if (this.isOk(res)) {
             const runResponse = this.runHandler.getRunResponse(res);
             await this.setRunId(runResponse);
@@ -146978,11 +146977,11 @@ class RunManager {
     }
     async setRunId(runRes) {
         runManager_logger.debug(`setRunId: runRes=${runRes.toString()}`);
-        const id = runRes.id;
-        if (!id || id === constants_Constants.NO_RUN_ID) {
+        if (!runRes.id || runRes.id === constants_Constants.NO_RUN_ID) {
             runManager_logger.error(constants_Constants.NO_RUN_ID);
             throw new Error(constants_Constants.NO_RUN_ID);
         }
+        const id = parseInt(runRes.id, 10);
         this.runHandler.setRunId(id);
         this.pollHandler.setRunId(id);
         runManager_logger.debug(`setRunId: runIdHandlers.length=${this.runIdHandlers.length}`);
@@ -147097,7 +147096,7 @@ class AlmLabManager {
         }
         const runType = this.resolveRunType(c.testSetId, c.bvsId);
         const entityId = runType === constants_Constants.BVS ? c.bvsId : c.testSetId;
-        const args = new Args(c.serverUrl, runType, `${entityId}`, c.domain, c.project, `${c.timeout}`, `${c.envConfigId}`);
+        const args = new Args(c.serverUrl, runType, entityId, c.domain, c.project, c.timeout, c.envConfigId);
         const cred = c.isSSO ?
             new Credentials(true, c.clientId, c.apiKeySecret) :
             new Credentials(false, c.username, c.password);

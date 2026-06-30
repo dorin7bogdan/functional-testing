@@ -6,9 +6,9 @@ const OR = ' OR ';
 export default class GetTestInstancesRequest extends GetRequestBase {
   private readonly testSetIds: string;
 
-  constructor(client: IClient, testsetIds: string | number[]) {
+  constructor(client: IClient, testsetIds: number | number[]) {
     super(client);
-    this.testSetIds = Array.isArray(testsetIds) ? testsetIds.join(OR) : testsetIds;
+    this.testSetIds = Array.isArray(testsetIds) ? testsetIds.join(OR) : `${testsetIds}`;
   }
 
   protected override get suffix(): string {

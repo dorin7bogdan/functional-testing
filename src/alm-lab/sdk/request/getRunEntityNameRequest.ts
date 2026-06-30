@@ -3,7 +3,7 @@ import GetRequest from './getRequest.js';
 
 export default class GetRunEntityNameRequest extends GetRequest {
   
-  constructor(client: IClient, private readonly nameSuffix: string, entityId: string) {
+  constructor(client: IClient, private readonly nameSuffix: string, entityId: number) {
     super(client, entityId);
   }
 

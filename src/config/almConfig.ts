@@ -45,8 +45,8 @@ export interface AlmConfig extends AlmCommonConfig {
   testSetsOrderByCriteria: string;
 }
 export interface AlmLabConfig extends AlmCommonConfig {
-  testSetId?: number;
-  bvsId?: number;
-  duration?: number;
-  envConfigId?: number;
+  testSetId: number;
+  bvsId: number;
+  duration: number;
+  envConfigId: number;
 }

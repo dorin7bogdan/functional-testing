@@ -43,11 +43,11 @@ export default class AlmLabManager {
     const args = new Args(
       c.serverUrl,
       runType,
-      `${entityId}`,
+      entityId,
       c.domain,
       c.project,
-      `${c.timeout}`,
-      `${c.envConfigId}`
+      c.timeout,
+      c.envConfigId
     );
 
     const cred = c.isSSO ?
@@ -57,7 +57,7 @@ export default class AlmLabManager {
     const client = new RestClient(args.serverUrl, cred, args.domain, args.project);
 
     const runManager = new RunManager(client, args, path.join(reportPath, DEFAULT_REPORT_FILE_NAME));
-    runManager.onRunIdGenerated(async (runId: string) => {
+    runManager.onRunIdGenerated(async (runId: number) => {
       await this.onRunIdGenerated(reportPath, runId);
     });
     return runManager;
@@ -73,7 +73,7 @@ export default class AlmLabManager {
     throw new Error('Either "almTestSetId" or "almBvsId" must be a positive integer');
   }
 
-  private static async onRunIdGenerated(reportPath: string, runId: string): Promise<void> {
+  private static async onRunIdGenerated(reportPath: string, runId: number): Promise<void> {
     logger.debug(`onRunIdGenerated: ${runId}`);
     if (!runId) {
       return;

@@ -4,7 +4,7 @@ import PollHandler from '../handler/pollHandler.js';
 import IClient from '../interface/iClient.js';
 
 export default class PollHandlerFactory {
-  public create(client: IClient, runType: LabRunType, entityId: string): PollHandler {
+  public create(client: IClient, runType: LabRunType, entityId: number): PollHandler {
     if (runType === Constants.BVS || runType === Constants.TEST_SET) {
       return new LabPollHandler(client, entityId);
     }

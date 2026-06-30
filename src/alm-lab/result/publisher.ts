@@ -11,8 +11,8 @@ const logger = new Logger('Publisher');
 export default abstract class Publisher {
   protected constructor(
     protected readonly client: IClient,
-    protected readonly entityId: string,
-    protected readonly runId: string,
+    protected readonly entityId: number,
+    protected readonly runId: number,
     protected readonly nameSuffix: string
   ) {}
 
@@ -48,6 +48,6 @@ export default abstract class Publisher {
     return [];
   }
 
-  protected abstract getRunEntityTestSetRunsRequest(client: IClient, runId: string): GetRequest;
+  protected abstract getRunEntityTestSetRunsRequest(client: IClient, runId: number): GetRequest;
   protected abstract getEntityName(): Promise<string>;
 }

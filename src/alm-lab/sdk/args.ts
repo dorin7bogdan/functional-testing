@@ -4,10 +4,10 @@ export default class Args {
   constructor(
     public readonly serverUrl: string,
     public readonly runType: LabRunType,
-    public readonly entityId: string,
+    public readonly entityId: number,
     public readonly domain: string,
     public readonly project: string,
-    public readonly duration: string = "",
-    public readonly environmentConfigurationId: string = ""
+    public readonly duration: number,
+    public readonly envConfigId: number
   ) {}
 }

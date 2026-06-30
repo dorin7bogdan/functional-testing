@@ -105,6 +105,7 @@ inputs:
                   To find the ID of your environment configuration, right-click the entity, copy the URL, and paste it to a text editor. 
                   Use the number associated with the EntityID at the end of the URL'
     required: false
+    default: "0"
 
 # This section defines common configuration inputs for FileSystem and ALM run types
   resultTestNameOnly:

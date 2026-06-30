@@ -3,7 +3,7 @@ import GetRequest from './getRequest.js';
 import RequestBase from './requestBase.js';
 
 export default class GetLabRunEntityDataRequest extends GetRequest {
-  constructor(client: IClient, runId: string) {
+  constructor(client: IClient, runId: number) {
     super(client, runId);
   }
 

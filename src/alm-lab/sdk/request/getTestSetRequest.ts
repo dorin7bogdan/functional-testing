@@ -3,7 +3,7 @@ import GetRequestBase from './getRequestBase.js';
 
 export default class GetTestSetRequest extends GetRequestBase {
   
-  constructor(client: IClient, private readonly testSetId: string) {
+  constructor(client: IClient, private readonly testSetId: number) {
     super(client);
   }
 

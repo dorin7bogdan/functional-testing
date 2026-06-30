@@ -12,12 +12,12 @@ export default abstract class RunHandler extends HandlerBase {
   protected abstract get startSuffix(): string;
   public abstract getNameSuffix(): string;
 
-  protected constructor(client: IClient, entityId: string) {
+  protected constructor(client: IClient, entityId: number) {
     logger.debug(`ctor: entityId=${entityId}`);
     super(client, entityId);
   }
 
-  public async start(duration: string, envConfigId: string): Promise<Response> {
+  public async start(duration: number, envConfigId: number): Promise<Response> {
     logger.debug(`start: duration=${duration}, envConfigId=${envConfigId}`);
     return await new StartRunEntityRequest(this.client, this.startSuffix, this.entityId, duration, envConfigId).execute();
   }

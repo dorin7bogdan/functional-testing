@@ -2,7 +2,7 @@ import IClient from '../interface/iClient.js';
 import RunHandler from './runHandler.js';
 
 export default class TestSetRunHandler extends RunHandler {
-  constructor(client: IClient, entityId: string) {
+  constructor(client: IClient, entityId: number) {
     super(client, entityId);
   }
 

@@ -17,7 +17,7 @@ const logger = new Logger('LabPollHandler');
 export default class LabPollHandler extends PollHandler {
   private eventLogHandler: EventLogHandler | null = null;
 
-  constructor(client: IClient, entityId: string) {
+  constructor(client: IClient, entityId: number) {
     super(client, entityId);
   }
 
@@ -27,7 +27,7 @@ export default class LabPollHandler extends PollHandler {
     if (res.isOK) {
       this.setTimeslotId(res);
       this.eventLogHandler = new EventLogHandler(this.client, this.timeslotId);
-      if (this.timeslotId.trim().length > 0) {
+      if (this.timeslotId) {
         ok = await super.doPoll();
       }
     } else {
@@ -81,10 +81,9 @@ export default class LabPollHandler extends PollHandler {
   }
 
   private setTimeslotId(runEntityResponse: Response): void {
-    this.timeslotId = this.getTimeslotId(runEntityResponse);
-    if (this.timeslotId.trim().length > 0) {
-      logger.info(`Timeslot id: ${this.timeslotId}`);
-    }
+    const tsId = this.getTimeslotId(runEntityResponse);
+    logger.info(`Timeslot id: ${tsId}`);
+    this.timeslotId = parseInt(tsId, 10);
   }
 
   private async getRunEntityData(): Promise<Response> {

@@ -4,7 +4,7 @@ import GetRequest from './getRequest.js';
 export default class EventLogRequest extends GetRequest {
   private readonly requestSuffix: string;
 
-  constructor(client: IClient, timeslotId: string) {
+  constructor(client: IClient, timeslotId: number) {
     super(client, timeslotId);
     this.requestSuffix = `event-log-reads?query={context["*Timeslot: ${timeslotId};*"]}&fields=id,event-type,creation-time,action,description`;
   }

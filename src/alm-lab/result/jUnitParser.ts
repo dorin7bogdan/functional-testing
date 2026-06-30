@@ -21,7 +21,7 @@ const FAIL = 'fail';
 const ERROR = 'error';
 
 export default class JUnitParser {
-  constructor(private readonly entityId: string) {}
+  constructor(private readonly entityId: number) {}
 
   public toModel(testInstanceRuns: EntityMap[], entityName: string, url: string, domain: string, project: string): TestSuites {
     const testSets = this.buildTestSets(testInstanceRuns, entityName, url, domain, project);

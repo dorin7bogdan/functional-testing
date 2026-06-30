@@ -9,7 +9,7 @@ const sleep = (ms: number): Promise<void> => new Promise(resolve => setTimeout(r
 export default abstract class PollHandler extends HandlerBase {
   private readonly interval = 5000;
 
-  protected constructor(client: IClient, entityId: string) {
+  protected constructor(client: IClient, entityId: number) {
     super(client, entityId);
   }
 

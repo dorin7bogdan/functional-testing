@@ -3,7 +3,7 @@ import GetRequestBase from './getRequestBase.js';
 
 export default class GetBvsRequest extends GetRequestBase {
   
-  constructor(client: IClient, private readonly bvsId: string) {
+  constructor(client: IClient, private readonly bvsId: number) {
     super(client);
   }
 

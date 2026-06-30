@@ -17,8 +17,9 @@ import Response from './response.js';
 import RunResponse from './runResponse.js';
 import Xml from './util/xml.js';
 import Logger from '../../utils/logger.js';
+import { parse } from 'path';
 
-type RunIdHandler = (runId: string) => void | Promise<void>;
+type RunIdHandler = (runId: number) => void | Promise<void>;
 const logger = new Logger('RunManager');
 export default class RunManager {
   private readonly runHandler: RunHandler;
@@ -69,7 +70,7 @@ export default class RunManager {
   private async start(): Promise<boolean> {
     logger.debug(`start ...`);
     let ok = false;
-    const res = await this.runHandler.start(this.args.duration, this.args.environmentConfigurationId);
+    const res = await this.runHandler.start(this.args.duration, this.args.envConfigId);
     if (this.isOk(res)) {
       const runResponse = this.runHandler.getRunResponse(res);
       await this.setRunId(runResponse);
@@ -100,12 +101,11 @@ export default class RunManager {
 
   private async setRunId(runRes: RunResponse): Promise<void> {
     logger.debug(`setRunId: runRes=${runRes.toString()}`);
-    const id = runRes.id;
-    if (!id || id === Constants.NO_RUN_ID) {
+    if (!runRes.id || runRes.id === Constants.NO_RUN_ID) {
       logger.error(Constants.NO_RUN_ID);
       throw new Error(Constants.NO_RUN_ID);
     }
-
+    const id = parseInt(runRes.id, 10);
     this.runHandler.setRunId(id);
     this.pollHandler.setRunId(id);
     logger.debug(`setRunId: runIdHandlers.length=${this.runIdHandlers.length}`);
