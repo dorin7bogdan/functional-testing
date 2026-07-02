@@ -142,12 +142,12 @@ try {
       clientId: getInput('almClientId'),
       apiKeySecret: getInput('almApiKeySecret'),
       runMode: getInput('almRunMode').toUpperCase(),
-      runHost: getInput('almRunHost'),
-      timeout: Number.parseInt(getInput('almTimeout'))
+      runHost: getInput('almRunHost')
     }
     if (_config.runType === RunType.ALM) {
       _config.alm = {
         testSets: getUnquotedInputEx('almTestSets'),
+        timeout: Number.parseInt(getInput('almTimeout')),
         testSetsOrderByCriteria: getInput('almTestSetsOrderByCriteria'),
         ...almCommConfig
       }

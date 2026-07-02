@@ -1,7 +1,7 @@
-import Args from '../args.js';
+import Args from '../util/args.js';
 import IClient from '../interface/iClient.js';
-import Response from '../response.js';
-import RunResponse from '../runResponse.js';
+import Response from '../response/response.js';
+import RunResponse from '../response/runResponse.js';
 import StartRunEntityRequest from '../request/startRunEntityRequest.js';
 import HandlerBase from './handlerBase.js';
 import Logger from '../../../utils/logger.js';
@@ -27,8 +27,6 @@ export default abstract class RunHandler extends HandlerBase {
   }
 
   public getRunResponse(response: Response): RunResponse {
-    const runResponse = new RunResponse();
-    runResponse.initialize(response);
-    return runResponse;
+    return new RunResponse(response);
   }
 }

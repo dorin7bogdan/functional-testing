@@ -37,17 +37,19 @@ import { RunType } from '../dto/RunType.js';
 import Encrypter from './Encrypter.js';
 
 const logger = new Logger('FtTestExecuter');
-
+const ALM_LAB = 'alm-lab';
 export default class FtTestExecuter {
-  public static async preProcess(runType: RunType, testOrTestSetPaths: string[]): Promise<{ propsFileName: string, xmlResFileName: string, encryptionKey: string }> {
+  public static async preProcess(runType: RunType, testOrTestSetPaths: string[] = []): Promise<{ propsFileName: string, xmlResFileName: string, encryptionKey: string }> {
     logger.debug(`preProcess ...`);
     await checkReadWriteAccess(config.runnerWsPath);
     const suffix = getTimestamp();
     const isParallel = runType === RunType.FSParallel;
     if (runType === RunType.FS || runType === RunType.FSParallel) {
-      return await this.createFSProps(FTL.FileSystem, suffix, testOrTestSetPaths, isParallel);
+      return await this.createFSProps(suffix, testOrTestSetPaths, isParallel);
     } else if (runType === RunType.ALM) {
-      return await this.createAlmProps(FTL.Alm, suffix, testOrTestSetPaths);
+      return await this.createAlmLikeProps(runType, suffix, testOrTestSetPaths);
+    } else if (runType === RunType.ALMLab) {
+      return await this.createAlmLikeProps(runType, suffix);
     }
     return { propsFileName: '', xmlResFileName: '', encryptionKey: '' };
   }
@@ -63,7 +65,7 @@ export default class FtTestExecuter {
     return exitCode;
   }
 
-  private static async createFSProps(runtype: string, suffix: string, testPaths: string[], isParallel: boolean = false): Promise<{ propsFileName: string, xmlResFileName: string, encryptionKey: string }> {
+  private static async createFSProps(suffix: string, testPaths: string[], isParallel: boolean = false): Promise<{ propsFileName: string, xmlResFileName: string, encryptionKey: string }> {
     const propsFileName = `props_${suffix}.txt`;
     const xmlResFileName = `results_${suffix}.xml`;
     const propsFullPath = path.join(config.runnerWsPath, propsFileName);
@@ -71,7 +73,7 @@ export default class FtTestExecuter {
     logger.debug(`createFSProps: "${propsFileName}" ...`);
 
     const props: { [key: string]: string } = {
-      runType: runtype,
+      runType: FTL.FileSystem,
       resultsFilename: xmlResFileName,
       cancelRunOnFailure: `${config.cancelRunOnFailure}`,
       resultTestNameOnly: `${config.resultTestNameOnly}`,
@@ -82,44 +84,60 @@ export default class FtTestExecuter {
       props[key] = escapePropVal(testPaths[i]);
     }
 
-/*    if (config.labUrl && config.labExecToken) {
-      props["MobileHostAddress"] = config.labUrl;
-      props["MobileExecToken"] = config.labExecToken;
-    }*/
+    /*    if (config.labUrl && config.labExecToken) {
+          props["MobileHostAddress"] = config.labUrl;
+          props["MobileExecToken"] = config.labExecToken;
+        }*/
     await this.writePropsFile(props, propsFullPath);
 
     return { propsFileName, xmlResFileName, encryptionKey: '' };
   }
 
-  private static async createAlmProps(runtype: string, suffix: string, testSets: string[]): Promise<{ propsFileName: string, xmlResFileName: string, encryptionKey: string }> {
+  private static async createAlmLikeProps(runType: RunType.ALM | RunType.ALMLab, suffix: string, testSets: string[] = []):
+    Promise<{ propsFileName: string, xmlResFileName: string, encryptionKey: string }> {
     const propsFileName = `props_${suffix}.txt`;
     const xmlResFileName = `results_${suffix}.xml`;
     const propsFullPath = path.join(config.runnerWsPath, propsFileName);
-    logger.debug(`createAlmProps: "${propsFileName}" ...`);
-    const alm = config.alm!;
+    logger.debug(`createAlmLikeProps: runType = "${runType}" ...`);
+
+    const isLab = runType === RunType.ALMLab;
+    const a = isLab ? config.almLab! : config.alm!;
     const enc = new Encrypter();
 
     const props: { [key: string]: string } = {
-      runType: runtype,
-      almServerUrl: alm.serverUrl,
-      almUsername: alm.username,
-      almPassword: alm.isSSO ? "" : enc.encrypt(alm.password),
-      almDomain: alm.domain,
-      almProject: alm.project,
-      SSOEnabled: `${alm.isSSO}`,
-      almClientId: alm.clientId,
-      almApiKeySecret: alm.isSSO ? enc.encrypt(alm.apiKeySecret) : "",
-      almRunMode: `RUN_${alm.runMode}`,
-      almRunHost: alm.runHost,
-      almTestSetsOrderByCriteria: alm.testSetsOrderByCriteria,
-      almTimeout: `${alm.timeout}`,
-      resultsFilename: xmlResFileName,
-      resultTestNameOnly: `${config.resultTestNameOnly}`,
-      resultUnifiedTestClassname: `${config.resultUnifiedTestClassname}`
+      runType: isLab ? ALM_LAB : FTL.Alm,
+      almServerUrl: a.serverUrl,
+      almUsername: a.username,
+      almPassword: a.isSSO ? '' : enc.encrypt(a.password),
+      almDomain: a.domain,
+      almProject: a.project,
+      SSOEnabled: `${a.isSSO}`,
+      almClientId: a.clientId,
+      almApiKeySecret: a.isSSO ? enc.encrypt(a.apiKeySecret) : '',
+      almRunMode: `RUN_${a.runMode}`,
+      almRunHost: a.runHost,
+      resultsFilename: xmlResFileName
     };
-    for (let i = 0; i < testSets.length; i++) {
-      const key = `TestSet${i + 1}`;
-      props[key] = escapePropVal(testSets[i]);
+
+    if (isLab) {
+      const lab = config.almLab!;
+      if (lab.testSetId > 0) {
+        props.almTestSetId = `${lab.testSetId}`;
+      } else if (lab.bvsId > 0) {
+        props.almBvsId = `${lab.bvsId}`;
+      }
+    } else {
+      const alm = config.alm!;
+      Object.assign(props, {
+        almTestSetsOrderByCriteria: alm.testSetsOrderByCriteria,
+        almTimeout: `${alm.timeout}`,
+        resultTestNameOnly: `${config.resultTestNameOnly}`,
+        resultUnifiedTestClassname: `${config.resultUnifiedTestClassname}`
+      });
+
+      for (let i = 0; i < testSets.length; i++) {
+        props[`TestSet${i + 1}`] = escapePropVal(testSets[i]);
+      }
     }
 
     await this.writePropsFile(props, propsFullPath);

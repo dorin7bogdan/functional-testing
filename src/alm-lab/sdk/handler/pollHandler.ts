@@ -1,5 +1,5 @@
 import Logger from '../../../utils/logger.js';
-import Response from '../response.js';
+import Response from '../response/response.js';
 import IClient from '../interface/iClient.js';
 import HandlerBase from './handlerBase.js';
 

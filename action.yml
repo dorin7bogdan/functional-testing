@@ -69,10 +69,6 @@ inputs:
     description: 'The hostname or IP address of the machine which to run the ALM tests on.
                   Only used if almRunMode is "REMOTE".'
     required: false # required if almRunMode is "REMOTE".
-  almTimeout:
-    description: 'The number of seconds before the ALM test run times out. Default = -1 (no timeout)'
-    required: false
-    default: "-1"
 
 # This section defines regular ALM specific configuration inputs
   almTestSets:
@@ -80,6 +76,10 @@ inputs:
                   For multiple test sets you can use an array of paths: ["path\\to\\TestSet1", "path\\to\\TestSet2", ...]. 
                   The "Root" ALM folder is optional. Required for runType "alm".'
     required: false # required for runType "alm" only.
+  almTimeout:
+    description: 'The number of seconds before the ALM test run times out. Default = -1 (no timeout)'
+    required: false
+    default: "-1"
   almTestSetsOrderByCriteria:
     description: 'id | name => The criteria used to order the execution of test sets. 
                   Use "id" to sort by test set ID in ascending order, or "name" to sort alphabetically by test set name. 

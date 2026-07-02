@@ -1,5 +1,5 @@
-import { ResxAccessLevel } from '../resxAccessLevel.js';
-import Response from '../response.js';
+import { ResxAccessLevel } from '../util/resxAccessLevel.js';
+import Response from '../response/response.js';
 import RequestBase from './requestBase.js';
 
 export default abstract class GetRequestBase extends RequestBase {

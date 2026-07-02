@@ -1,6 +1,7 @@
 import Logger from '../../../utils/logger.js';
+import { Constants } from '../util/constants.js';
 import IClient from '../interface/iClient.js';
-import Response, { WebHeaders } from '../response.js';
+import Response, { WebHeaders } from '../response/response.js';
 
 const logger = new Logger('RequestBase');
 export default abstract class RequestBase {
@@ -26,7 +27,10 @@ export default abstract class RequestBase {
   }
 
   protected get headers(): WebHeaders {
-    return { [RequestBase.X_XSRF_TOKEN]: this.client.xsrfTokenValue };
+    return {
+       [RequestBase.X_XSRF_TOKEN]: this.client.xsrfTokenValue,
+       Accept: Constants.APP_JSON
+      };
   }
 
   protected get url(): string {

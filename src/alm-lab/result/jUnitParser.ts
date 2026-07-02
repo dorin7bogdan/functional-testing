@@ -1,6 +1,7 @@
 import { TestCase, TestSuite } from './testSuites.js';
 import TestSuites from './testSuites.js';
-import { EntityMap } from '../sdk/util/xml.js';
+import { EntityMap } from '../sdk/util/jsonParser.js';
+import Logger from '../../utils/logger.js';
 
 const TESTSET_NAME = 'testset-name';
 const TEST_SUBTYPE = 'test-subtype';
@@ -19,6 +20,8 @@ const ZERO = '0';
 const PASS = 'pass';
 const FAIL = 'fail';
 const ERROR = 'error';
+
+const logger = new Logger('JUnitParser');
 
 export default class JUnitParser {
   constructor(private readonly entityId: number) {}
@@ -110,6 +113,7 @@ export default class JUnitParser {
 
   private updateStatus(testCase: TestCase, entity: EntityMap, url: string, domain: string, project: string): void {
     const status = entity[STATUS] ?? '';
+    logger.debug(`updateStatus: entity status="${status}"`);
     testCase.status = this.getAzureStatus(status);
     const link = this.getTestInstanceRunLink(entity, url, domain, project);
 
@@ -121,14 +125,17 @@ export default class JUnitParser {
   }
 
   private getTestInstanceRunLink(entity: EntityMap, url: string, domain: string, project: string): string {
-    const runId = entity[RUN_ID];
-    if (!runId?.trim()) {
+    const runId = entity[RUN_ID] ?? "";
+    logger.debug(`getTestInstanceRunLink: runId="${runId}"`);
+    if (runId.trim() === "") {
       return '';
     }
 
     try {
       const host = new URL(url).hostname;
-      return `To see the test instance run in ALM, go to: td://${project}.${domain}.${host}:8080/qcbin/[TestRuns]?EntityLogicalName=run&EntityID=${runId}`;
+      const link = `To see the test instance run in ALM, go to: td://${project}.${domain}.${host}:8080/qcbin/[TestRuns]?EntityLogicalName=run&EntityID=${runId}`;
+      logger.debug(`getTestInstanceRunLink: link="${link}"`);
+      return link;
     } catch {
       return '';
     }

@@ -1,4 +1,4 @@
-import { Constants, LabRunType } from '../constants.js';
+import { Constants, LabRunType } from '../util/constants.js';
 import IClient from '../interface/iClient.js';
 import BvsRunHandler from '../handler/bvsRunHandler.js';
 import RunHandler from '../handler/runHandler.js';

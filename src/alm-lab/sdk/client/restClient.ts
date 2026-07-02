@@ -1,10 +1,10 @@
 import { randomUUID, createHash } from 'crypto';
-import { Constants } from './constants.js';
-import Credentials from './credentials.js';
-import Response, { WebHeaders } from './response.js';
-import { ResxAccessLevel, resxAccessHeaderName } from './resxAccessLevel.js';
-import IClient from './interface/iClient.js';
-import Logger from '../../utils/logger.js';
+import { Constants } from '../util/constants.js';
+import Credentials from '../util/credentials.js';
+import Response, { WebHeaders } from '../response/response.js';
+import { ResxAccessLevel, resxAccessHeaderName } from '../util/resxAccessLevel.js';
+import IClient from '../interface/iClient.js';
+import Logger from '../../../utils/logger.js';
 
 const logger = new Logger('RestClient');
 const SET_COOKIE = 'set-cookie';
@@ -64,14 +64,15 @@ export default class RestClient implements IClient {
         url += `?${query}`;
       }
       logger.debug(`GET ${url}`);
-
+      const reqHeaders = this.decorateRequestHeaders(headers, resxAccessLevel);
+      //logger.debug(`HEADERS: ${JSON.stringify(headersToObject(reqHeaders))}`);
       const response = await fetch(url, {
         method: 'GET',
-        headers: this.decorateRequestHeaders(headers, resxAccessLevel)
+        headers: reqHeaders
       });
       this.updateCookies(response.headers);
       const data = await response.text();
-      logger.debug(data);
+      logger.debug(`RESPONSE: ${data}`);
 
       if (!response.ok) {
         const err = data || response.statusText || `HTTP ${response.status}`;
@@ -82,7 +83,6 @@ export default class RestClient implements IClient {
       return new Response({ data, headers: headersToObject(response.headers), statusCode: response.status });
     } catch (error: any) {
       const err = error?.message ?? `${error}`;
-      logger.error(err);
       return new Response({ error: err });
     }
   }
@@ -92,7 +92,7 @@ export default class RestClient implements IClient {
     try {
       logger.debug(`POST ${url}`);
       const hdrs = this.decorateRequestHeaders(headers, resxAccessLevel);
-      logger.debug(`HEADERS: ${JSON.stringify(headersToObject(hdrs))}`);
+      //logger.debug(`HEADERS: ${JSON.stringify(headersToObject(hdrs))}`);
       logger.debug(`BODY: ${body}`);
       const response = await fetch(url, {
         method: 'POST',
@@ -101,7 +101,7 @@ export default class RestClient implements IClient {
       });
       this.updateCookies(response.headers);
       const data = await response.text();
-
+      logger.debug(`RESPONSE: ${data}`);
       if (!response.ok) {
         const err = data || response.statusText || `HTTP ${response.status}`;
         logger.error(err);
