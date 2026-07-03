@@ -102,18 +102,16 @@ export default class FtTestExecuter {
 
     const isLab = runType === RunType.ALMLab;
     const a = isLab ? config.almLab! : config.alm!;
-    const enc = new Encrypter();
+    const enc = isLab ? null : new Encrypter();
 
     const props: { [key: string]: string } = {
       runType: isLab ? ALM_LAB : FTL.Alm,
       almServerUrl: a.serverUrl,
       almUsername: a.username,
-      almPassword: a.isSSO ? '' : enc.encrypt(a.password),
       almDomain: a.domain,
       almProject: a.project,
       SSOEnabled: `${a.isSSO}`,
       almClientId: a.clientId,
-      almApiKeySecret: a.isSSO ? enc.encrypt(a.apiKeySecret) : '',
       almRunMode: `RUN_${a.runMode}`,
       almRunHost: a.runHost,
       resultsFilename: xmlResFileName
@@ -129,6 +127,8 @@ export default class FtTestExecuter {
     } else {
       const alm = config.alm!;
       Object.assign(props, {
+        almPassword: a.isSSO ? '' : enc!.encrypt(a.password),
+        almApiKeySecret: a.isSSO ? enc!.encrypt(a.apiKeySecret) : '',
         almTestSetsOrderByCriteria: alm.testSetsOrderByCriteria,
         almTimeout: `${alm.timeout}`,
         resultTestNameOnly: `${config.resultTestNameOnly}`,
@@ -141,7 +141,7 @@ export default class FtTestExecuter {
     }
 
     await this.writePropsFile(props, propsFullPath);
-    return { propsFileName, xmlResFileName, encryptionKey: enc.key };
+    return { propsFileName, xmlResFileName, encryptionKey: enc?.key ?? "" };
   }
 
   private static async writePropsFile(props: { [key: string]: string }, propsFullPath: string): Promise<void> {

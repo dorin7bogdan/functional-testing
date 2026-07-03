@@ -35,7 +35,7 @@ import * as path from 'path';
 import GitHubClient from './client/githubClient.js';
 import { ExitCode } from './ft/ExitCode.js';
 import FtTestExecuter from './ft/FtTestExecuter.js';
-import * as fs from 'fs-extra';
+import fs from 'fs-extra';
 import JUnitParser from './reporting/JUnitParser.js';
 import { RunType } from './dto/RunType.js';
 import { checkoutRepo } from './utils/utils.js';
@@ -126,11 +126,12 @@ export const handleCurrentEvent = async (): Promise<void> => {
         const { propsFileName, xmlResFileName } = await FtTestExecuter.preProcess(runType);
         filesToCleanup.push(propsFileName, xmlResFileName);
         const almLabMgr = new AlmLabManager(xmlResFileName);
-        exitCode = await almLabMgr.run();
-        filesToCleanup.push(almLabMgr.rptUrlFilePath);
-        almLabMgr.runIdFilePath && filesToCleanup.push(almLabMgr.runIdFilePath);
-        //TODO buildJUnitReport + uploadArtifacts
-        await uploadArtifacts(propsFileName, xmlResFileName);
+        const { exitCode: exCode, runIdFilePath, rptUrlFilePath } = await almLabMgr.run();
+        exitCode = exCode;
+        filesToCleanup.push(rptUrlFilePath);
+        runIdFilePath && filesToCleanup.push(runIdFilePath);
+        reportPaths = await buildJUnitReport(xmlResFileName);
+        await uploadArtifacts(propsFileName, xmlResFileName, JUNIT_RES_XML, reportPaths);
       }
       logger.info(`END run: ExitCode=${exitCode}.`);
       return exitCode;

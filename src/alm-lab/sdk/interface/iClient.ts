@@ -17,13 +17,6 @@ export default interface IClient {
     resxAccessLevel?: ResxAccessLevel
   ): Promise<Response>;
 
-  httpPut(
-    url: string,
-    headers?: WebHeaders,
-    body?: string,
-    resxAccessLevel?: ResxAccessLevel
-  ): Promise<Response>;
-
   buildRestEndpoint(suffix: string): string;
   buildWebUIEndpoint(suffix: string): string;
 

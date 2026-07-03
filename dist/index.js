@@ -89168,7 +89168,7 @@ var LogLevel;
     LogLevel[LogLevel["ERROR"] = 5] = "ERROR";
 })(LogLevel || (LogLevel = {}));
 class Logger {
-    isDebugEnabled() {
+    get isDebugEnabled() {
         return LogLevel.DEBUG >= this.minLevel;
     }
     minLevel;
@@ -136529,17 +136529,15 @@ class FtTestExecuter {
         FtTestExecuter_logger.debug(`createAlmLikeProps: runType = "${runType}" ...`);
         const isLab = runType === RunType.ALMLab;
         const a = isLab ? config.almLab : config.alm;
-        const enc = new Encrypter();
+        const enc = isLab ? null : new Encrypter();
         const props = {
             runType: isLab ? ALM_LAB : FTL.Alm,
             almServerUrl: a.serverUrl,
             almUsername: a.username,
-            almPassword: a.isSSO ? '' : enc.encrypt(a.password),
             almDomain: a.domain,
             almProject: a.project,
             SSOEnabled: `${a.isSSO}`,
             almClientId: a.clientId,
-            almApiKeySecret: a.isSSO ? enc.encrypt(a.apiKeySecret) : '',
             almRunMode: `RUN_${a.runMode}`,
             almRunHost: a.runHost,
             resultsFilename: xmlResFileName
@@ -136556,6 +136554,8 @@ class FtTestExecuter {
         else {
             const alm = config.alm;
             Object.assign(props, {
+                almPassword: a.isSSO ? '' : enc.encrypt(a.password),
+                almApiKeySecret: a.isSSO ? enc.encrypt(a.apiKeySecret) : '',
                 almTestSetsOrderByCriteria: alm.testSetsOrderByCriteria,
                 almTimeout: `${alm.timeout}`,
                 resultTestNameOnly: `${config.resultTestNameOnly}`,
@@ -136566,7 +136566,7 @@ class FtTestExecuter {
             }
         }
         await this.writePropsFile(props, propsFullPath);
-        return { propsFileName, xmlResFileName, encryptionKey: enc.key };
+        return { propsFileName, xmlResFileName, encryptionKey: enc?.key ?? "" };
     }
     static async writePropsFile(props, propsFullPath) {
         try {
@@ -136581,8 +136581,10 @@ class FtTestExecuter {
 
 // EXTERNAL MODULE: ./node_modules/fs-extra/lib/index.js
 var fs_extra_lib = __nccwpck_require__(2136);
+var fs_extra_lib_default = /*#__PURE__*/__nccwpck_require__.n(fs_extra_lib);
 // EXTERNAL MODULE: ./node_modules/sax/lib/sax.js
 var sax = __nccwpck_require__(2560);
+var sax_default = /*#__PURE__*/__nccwpck_require__.n(sax);
 ;// CONCATENATED MODULE: ./src/reporting/CaseResult.ts
 
 
@@ -136716,7 +136718,7 @@ class SuiteResult {
     static parseXML(xmlResFullPath, keepLongStdio) {
         SuiteResult_logger.debug(`parseXML: [${xmlResFullPath}], keepLongStdio=${keepLongStdio} ...`);
         return new Promise((resolve, reject) => {
-            const parser = sax.createStream(true, { trim: true });
+            const parser = sax_default().createStream(true, { trim: true });
             const r = [];
             let testSuite = null;
             let testCase = null;
@@ -137127,6 +137129,28 @@ const headersToObject = (headers) => {
     });
     return values;
 };
+const sanitizeHeadersForLog = (headers) => {
+    const safeHeaders = {};
+    const maskedHeaderNames = new Set(['ptal', 'pval', 'x-xsrf-token']);
+    headers.forEach((value, key) => {
+        const normalizedKey = key.toLowerCase();
+        if (normalizedKey === 'cookie') {
+            safeHeaders[key] = value
+                .split(';')
+                .map((part) => part.trim())
+                .filter(Boolean)
+                .map((part) => part.split('=', 1)[0].trim())
+                .filter(Boolean);
+            return;
+        }
+        if (maskedHeaderNames.has(normalizedKey)) {
+            safeHeaders[key] = '***';
+            return;
+        }
+        safeHeaders[key] = value;
+    });
+    return safeHeaders;
+};
 class RestClient {
     serverUrl;
     credentials;
@@ -137155,22 +137179,27 @@ class RestClient {
     }
     async httpGet(url, headers, resxAccessLevel = ResxAccessLevel.PUBLIC, query = '') {
         try {
+            (!headers) && (headers = { Accept: constants_Constants.APP_JSON });
             if (query.trim().length > 0) {
                 url += `?${query}`;
             }
             restClient_logger.debug(`GET ${url}`);
-            const reqHeaders = this.decorateRequestHeaders(headers, resxAccessLevel);
-            //logger.debug(`HEADERS: ${JSON.stringify(headersToObject(reqHeaders))}`);
+            if (url.endsWith('/authentication-point/logout')) {
+                this.cookies.delete('XSRF-TOKEN');
+                this.cookies.delete('JSESSIONID');
+            }
+            const hdrs = this.decorateRequestHeaders(headers, resxAccessLevel);
+            restClient_logger.debug(`HEADERS: ${JSON.stringify(sanitizeHeadersForLog(hdrs))}`);
             const response = await fetch(url, {
                 method: 'GET',
-                headers: reqHeaders
+                headers: hdrs
             });
             this.updateCookies(response.headers);
             const data = await response.text();
             restClient_logger.debug(`RESPONSE: ${data}`);
             if (!response.ok) {
                 const err = data || response.statusText || `HTTP ${response.status}`;
-                restClient_logger.error(err);
+                restClient_logger.isDebugEnabled && restClient_logger.error(err);
                 return new Response({ error: err, statusCode: response.status, headers: headersToObject(response.headers) });
             }
             return new Response({ data, headers: headersToObject(response.headers), statusCode: response.status });
@@ -137183,8 +137212,9 @@ class RestClient {
     async httpPost(url, headers, body, resxAccessLevel = ResxAccessLevel.PUBLIC) {
         try {
             restClient_logger.debug(`POST ${url}`);
+            (!headers) && (headers = { Accept: constants_Constants.APP_JSON, 'Content-Type': constants_Constants.APP_JSON });
             const hdrs = this.decorateRequestHeaders(headers, resxAccessLevel);
-            //logger.debug(`HEADERS: ${JSON.stringify(headersToObject(hdrs))}`);
+            restClient_logger.debug(`HEADERS: ${JSON.stringify(sanitizeHeadersForLog(hdrs))}`);
             restClient_logger.debug(`BODY: ${body}`);
             const response = await fetch(url, {
                 method: 'POST',
@@ -137207,10 +137237,7 @@ class RestClient {
             return new Response({ error: err });
         }
     }
-    async httpPut(url, headers, body, resxAccessLevel = ResxAccessLevel.PUBLIC) {
-        return await Promise.resolve(new Response());
-    }
-    decorateRequestHeaders(headers, resxAccessLevel) {
+    decorateRequestHeaders(headers, resxAccessLevel = ResxAccessLevel.PUBLIC) {
         const reqHeaders = new Headers(headers);
         const accessHeader = resxAccessHeaderName(resxAccessLevel);
         if (accessHeader) {
@@ -138431,19 +138458,19 @@ class GetTestSetRequest extends GetRequestBase {
 
 
 
+
+
 const runManager_logger = new Logger('RunManager');
 class RunManager {
     client;
     args;
-    rptUrlFilePath;
     runHandler;
     pollHandler;
     isLoggedIn = false;
     runIdHandlers = [];
-    constructor(client, args, rptUrlFilePath) {
+    constructor(client, args) {
         this.client = client;
         this.args = args;
-        this.rptUrlFilePath = rptUrlFilePath;
         this.runHandler = new RunHandlerFactory().create(client, args.runType, args.entityId);
         this.pollHandler = new PollHandlerFactory().create(client, args.runType, args.entityId);
     }
@@ -138453,19 +138480,24 @@ class RunManager {
     }
     async execute() {
         runManager_logger.debug(`execute: ...`);
-        let res = null;
+        let testSuites = null;
+        let rptUrlFilePath = "";
+        let isOK = false;
         const authHandler = AuthManager.instance;
         this.isLoggedIn = await authHandler.authenticate(this.client);
         if (this.isLoggedIn) {
-            if (await this.isValidBvsOrTestSet() && await this.start()) {
-                if (await this.pollHandler.poll()) {
-                    res = await this.publish();
+            if (await this.isValidBvsOrTestSet()) {
+                ({ isOK, rptUrlFilePath } = await this.start());
+                if (isOK) {
+                    if (await this.pollHandler.poll()) {
+                        testSuites = await this.publish();
+                    }
                 }
             }
             await authHandler.logout(this.client);
             this.isLoggedIn = false;
         }
-        return res;
+        return { testSuites, rptUrlFilePath };
     }
     async publish() {
         runManager_logger.debug(`publish ...`);
@@ -138474,24 +138506,27 @@ class RunManager {
     }
     async start() {
         runManager_logger.debug(`start ...`);
-        let ok = false;
+        let isOK = false;
         const res = await this.runHandler.start(this.args.duration, this.args.envConfigId);
         if (this.isOK(res)) {
             const runResponse = this.runHandler.getRunResponse(res);
             await this.setRunId(runResponse);
-            ok = runResponse.isOK;
+            isOK = runResponse.isOK;
         }
-        await this.logReportUrl(ok);
-        return ok;
+        const rptUrlFilePath = await this.logReportUrl(isOK);
+        return { isOK, rptUrlFilePath };
     }
     async logReportUrl(hasSucceeded) {
         runManager_logger.debug(`logReportUrl: hasSucceeded=${hasSucceeded}`);
         if (hasSucceeded) {
             const reportUrl = await this.runHandler.reportUrl(this.args);
-            runManager_logger.info(`${this.args.runType} run report for run id ${this.runHandler.getRunId()} is at: ${reportUrl}`);
+            const runId = this.runHandler.getRunId();
+            runManager_logger.info(`${this.args.runType} run report for run id ${runId} is at: ${reportUrl}`);
             try {
-                await external_fs_.promises.appendFile(this.rptUrlFilePath, `[Report ${this.runHandler.getRunId()}](${reportUrl})\n`, { encoding: 'utf8' });
-                runManager_logger.info(`Created the report URL file [${this.rptUrlFilePath}].`);
+                const rptUrlFilePath = external_path_default().join(config.runnerWsPath, `run-id-${runId}-report-url.txt`);
+                await external_fs_.promises.appendFile(rptUrlFilePath, `[Report ${runId}](${reportUrl})\n`, { encoding: 'utf8' });
+                runManager_logger.info(`Created the report URL file [${rptUrlFilePath}].`);
+                return rptUrlFilePath;
             }
             catch (error) {
                 runManager_logger.error(error?.message ?? `${error}`);
@@ -138502,6 +138537,7 @@ class RunManager {
             const note = 'Note: You can run only functional test sets and build verification suites using this task. Check to make sure that the configured ID is valid (and that it is not a performance test ID).';
             runManager_logger.error(`${errMsg}\n${note}`);
         }
+        return "";
     }
     async setRunId(runRes) {
         runManager_logger.debug(`setRunId: id=${runRes.id}, status="${runRes.isOK}"`);
@@ -138601,38 +138637,29 @@ class RunManager {
 
 
 const almLabManager_logger = new Logger('AlmLabManager');
-const REPORT_URL_TXT = 'report-url.txt';
 class AlmLabManager {
     xmlResFileName;
-    _runIdFilePath = null;
-    _rptUrlFilePath;
-    get runIdFilePath() {
-        return this._runIdFilePath;
-    }
-    get rptUrlFilePath() {
-        return this._rptUrlFilePath;
-    }
+    runIdFilePath;
     constructor(xmlResFileName) {
         this.xmlResFileName = xmlResFileName;
         almLabManager_logger.debug(`ctor() ...`);
-        this._rptUrlFilePath = external_path_.join(config.runnerWsPath, REPORT_URL_TXT);
     }
     async run() {
         almLabManager_logger.debug(`run() ...`);
         const resultsFilePath = external_path_.join(config.runnerWsPath, this.xmlResFileName);
         const runMgr = this.getRunManager();
-        const hasResults = await this.runLab(resultsFilePath, runMgr);
+        const { hasResults, rptUrlFilePath } = await this.runLab(resultsFilePath, runMgr);
         const exitCode = hasResults ? ExitCode_ExitCode.Passed : ExitCode_ExitCode.Failed;
         almLabManager_logger.debug(`run: ExitCode: ${exitCode}`);
-        return exitCode;
+        return { exitCode, runIdFilePath: this.runIdFilePath ?? '', rptUrlFilePath };
     }
     async runLab(resultsFilePath, runMgr) {
         almLabManager_logger.debug(`runLab() ...`);
-        const testSuites = await runMgr.execute();
+        const { testSuites, rptUrlFilePath } = await runMgr.execute();
         if (await this.saveResults(resultsFilePath, testSuites)) {
-            return testSuites?.items.some((suite) => suite.testCases.length > 0) === true;
+            return { hasResults: testSuites?.items.some((suite) => suite.testCases.length > 0) === true, rptUrlFilePath };
         }
-        return false;
+        return { hasResults: false, rptUrlFilePath };
     }
     getRunManager() {
         const c = config.almLab;
@@ -138646,9 +138673,9 @@ class AlmLabManager {
             new Credentials(true, c.clientId, c.apiKeySecret) :
             new Credentials(false, c.username, c.password);
         const client = new RestClient(args.serverUrl, cred, args.domain, args.project);
-        const runManager = new RunManager(client, args, this._rptUrlFilePath);
+        const runManager = new RunManager(client, args);
         runManager.onRunIdGenerated(async (runId) => {
-            await this.runIdGenerated(runId);
+            this.runIdFilePath = await this.runIdGenerated(runId);
         });
         return runManager;
     }
@@ -138664,15 +138691,17 @@ class AlmLabManager {
     async runIdGenerated(runId) {
         almLabManager_logger.debug(`runIdGenerated: "${runId}"`);
         if (!runId) {
-            return;
+            return '';
         }
-        this._runIdFilePath = external_path_.join(config.runnerWsPath, `${runId}.runid`);
         try {
-            almLabManager_logger.debug(`runIdGenerated: Creating [${this._runIdFilePath}] ...`);
-            await promises_namespaceObject.writeFile(this._runIdFilePath, '', { encoding: 'utf8' });
+            const runIdFilePath = external_path_.join(config.runnerWsPath, `${runId}.runid`);
+            almLabManager_logger.debug(`runIdGenerated: Creating [${runIdFilePath}] ...`);
+            await promises_namespaceObject.writeFile(runIdFilePath, '', { encoding: 'utf8' });
+            return runIdFilePath;
         }
         catch (error) {
-            almLabManager_logger.warn(`Error creating the run ID file [${this._runIdFilePath}]: ${error}`);
+            almLabManager_logger.warn(`Error creating the file "${runId}.runid": ${error}`);
+            return '';
         }
     }
     async saveResults(filePath, testSuites) {
@@ -138810,11 +138839,12 @@ const handleCurrentEvent = async () => {
                 const { propsFileName, xmlResFileName } = await FtTestExecuter.preProcess(runType);
                 filesToCleanup.push(propsFileName, xmlResFileName);
                 const almLabMgr = new AlmLabManager(xmlResFileName);
-                exitCode = await almLabMgr.run();
-                filesToCleanup.push(almLabMgr.rptUrlFilePath);
-                almLabMgr.runIdFilePath && filesToCleanup.push(almLabMgr.runIdFilePath);
-                //TODO buildJUnitReport + uploadArtifacts
-                await uploadArtifacts(propsFileName, xmlResFileName);
+                const { exitCode: exCode, runIdFilePath, rptUrlFilePath } = await almLabMgr.run();
+                exitCode = exCode;
+                filesToCleanup.push(rptUrlFilePath);
+                runIdFilePath && filesToCleanup.push(runIdFilePath);
+                reportPaths = await buildJUnitReport(xmlResFileName);
+                await uploadArtifacts(propsFileName, xmlResFileName, JUNIT_RES_XML, reportPaths);
             }
             eventHandler_logger.info(`END run: ExitCode=${exitCode}.`);
             return exitCode;
@@ -138923,7 +138953,7 @@ const cleanupTempFiles = async (fileNames) => {
         if (fileName) {
             const fullPathFile = external_path_.join(config.runnerWsPath, fileName);
             try {
-                await fs_extra_lib.promises.rm(fullPathFile, { force: true });
+                await fs_extra_lib_default().promises.rm(fullPathFile, { force: true });
                 eventHandler_logger.debug(`cleanupTempFiles: Deleted "${fileName}"`);
             }
             catch (error) {
@@ -138933,7 +138963,7 @@ const cleanupTempFiles = async (fileNames) => {
     }));
     // Find and remove all timestamped files matching pattern: (props|results|params)_ddMMyyyyHHmmssfff.(txt|xml)
     try {
-        const entries = await fs_extra_lib.promises.readdir(config.runnerWsPath, { withFileTypes: true });
+        const entries = await fs_extra_lib_default().promises.readdir(config.runnerWsPath, { withFileTypes: true });
         const pattern = /^(props|results|params)_\d{17}\.(txt|xml)$/;
         const tempFiles = entries
             .filter(entry => entry.isFile() && pattern.test(entry.name))
@@ -138942,7 +138972,7 @@ const cleanupTempFiles = async (fileNames) => {
             await Promise.all(tempFiles.map(async (file) => {
                 const fullPath = external_path_.join(config.runnerWsPath, file);
                 try {
-                    await fs_extra_lib.promises.rm(fullPath, { force: true });
+                    await fs_extra_lib_default().promises.rm(fullPath, { force: true });
                     eventHandler_logger.debug(`cleanupTempFiles: Deleted "${file}"`);
                 }
                 catch (error) {
@@ -138963,7 +138993,7 @@ const cleanupReportFolders = async (reportPaths) => {
         const fullPath = external_path_.join(config.runnerWsPath, relativePath);
         try {
             eventHandler_logger.debug(`deleting "${fullPath}" ...`);
-            await fs_extra_lib.promises.rm(fullPath, { recursive: true, force: true });
+            await fs_extra_lib_default().promises.rm(fullPath, { recursive: true, force: true });
         }
         catch (error) {
             eventHandler_logger.warn(`cleanupReportFolders: Failed to delete "${fullPath}": ${error}`);
@@ -139045,7 +139075,7 @@ const validateAndGetTestPaths = async () => {
     }
     // Resolve each relative path against the repository root inside the runner workspace
     const testPaths = config.testPaths.map(p => external_path_.join(config.repo, p));
-    const missing = testPaths.filter(p => !fs_extra_lib.existsSync(external_path_.resolve(config.runnerWsPath, p)));
+    const missing = testPaths.filter(p => !fs_extra_lib_default().existsSync(external_path_.resolve(config.runnerWsPath, p)));
     if (missing.length > 0) {
         throw new Error(`The following test paths do not exist:\n${missing.join('\n')}`);
     }
@@ -139063,7 +139093,7 @@ const buildJUnitReport = async (xmlResFileName) => {
         .map(c => c.reportPath)
         .filter((p) => !!p);
     const junitFullPath = external_path_.join(config.runnerWsPath, JUNIT_RES_XML);
-    await fs_extra_lib.writeFile(junitFullPath, junitRes.toXML());
+    await fs_extra_lib_default().writeFile(junitFullPath, junitRes.toXML());
     eventHandler_logger.debug(`buildJUnitReport: junitFullPath="${junitFullPath}", reportPaths=${reportPaths.length}`);
     return reportPaths;
 };

@@ -28,7 +28,7 @@
  */
 import Logger from '../utils/logger.js';
 import * as fs from 'fs';
-import * as sax from 'sax';
+import sax from 'sax';
 import CaseResult from './CaseResult.js';
 import { escapeXML, parseTimeToFloat } from '../utils/utils.js';
 import * as path from 'path';

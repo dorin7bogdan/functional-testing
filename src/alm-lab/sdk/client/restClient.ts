@@ -28,6 +28,32 @@ const headersToObject = (headers: Headers): WebHeaders => {
   return values;
 };
 
+const sanitizeHeadersForLog = (headers: Headers): Record<string, string | string[]> => {
+  const safeHeaders: Record<string, string | string[]> = {};
+  const maskedHeaderNames = new Set(['ptal', 'pval', 'x-xsrf-token']);
+
+  headers.forEach((value, key) => {
+    const normalizedKey = key.toLowerCase();
+    if (normalizedKey === 'cookie') {
+      safeHeaders[key] = value
+        .split(';')
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .map((part) => part.split('=', 1)[0].trim())
+        .filter(Boolean);
+      return;
+    }
+
+    if (maskedHeaderNames.has(normalizedKey)) {
+      safeHeaders[key] = '***';
+      return;
+    }
+
+    safeHeaders[key] = value;
+  });
+  return safeHeaders;
+};
+
 export default class RestClient implements IClient {
   private readonly cookies: Map<string, string> = new Map();
   private readonly restPrefix: string;
@@ -57,18 +83,25 @@ export default class RestClient implements IClient {
   }
 
   public async httpGet(url: string, headers?: WebHeaders,
-    resxAccessLevel: ResxAccessLevel = ResxAccessLevel.PUBLIC,
+    resxAccessLevel = ResxAccessLevel.PUBLIC,
     query = ''): Promise<Response> {
     try {
+      (!headers) && (headers = { Accept: Constants.APP_JSON });
+
       if (query.trim().length > 0) {
         url += `?${query}`;
       }
       logger.debug(`GET ${url}`);
-      const reqHeaders = this.decorateRequestHeaders(headers, resxAccessLevel);
-      //logger.debug(`HEADERS: ${JSON.stringify(headersToObject(reqHeaders))}`);
+      if (url.endsWith('/authentication-point/logout')) {
+        this.cookies.delete('XSRF-TOKEN');
+        this.cookies.delete('JSESSIONID');
+      }
+
+      const hdrs = this.decorateRequestHeaders(headers, resxAccessLevel);
+      logger.debug(`HEADERS: ${JSON.stringify(sanitizeHeadersForLog(hdrs))}`);
       const response = await fetch(url, {
         method: 'GET',
-        headers: reqHeaders
+        headers: hdrs
       });
       this.updateCookies(response.headers);
       const data = await response.text();
@@ -76,7 +109,7 @@ export default class RestClient implements IClient {
 
       if (!response.ok) {
         const err = data || response.statusText || `HTTP ${response.status}`;
-        logger.error(err);
+        logger.isDebugEnabled && logger.error(err);
         return new Response({ error: err, statusCode: response.status, headers: headersToObject(response.headers) });
       }
 
@@ -88,11 +121,12 @@ export default class RestClient implements IClient {
   }
 
   public async httpPost(url: string, headers?: WebHeaders, body?: string,
-                        resxAccessLevel: ResxAccessLevel = ResxAccessLevel.PUBLIC): Promise<Response> {
+    resxAccessLevel = ResxAccessLevel.PUBLIC): Promise<Response> {
     try {
       logger.debug(`POST ${url}`);
+      (!headers) && (headers = { Accept: Constants.APP_JSON, 'Content-Type': Constants.APP_JSON });
       const hdrs = this.decorateRequestHeaders(headers, resxAccessLevel);
-      //logger.debug(`HEADERS: ${JSON.stringify(headersToObject(hdrs))}`);
+      logger.debug(`HEADERS: ${JSON.stringify(sanitizeHeadersForLog(hdrs))}`);
       logger.debug(`BODY: ${body}`);
       const response = await fetch(url, {
         method: 'POST',
@@ -116,16 +150,7 @@ export default class RestClient implements IClient {
     }
   }
 
-  public async httpPut(
-    url: string,
-    headers?: WebHeaders,
-    body?: string,
-    resxAccessLevel: ResxAccessLevel = ResxAccessLevel.PUBLIC
-  ): Promise<Response> {
-    return await Promise.resolve(new Response());
-  }
-
-  private decorateRequestHeaders(headers: WebHeaders | undefined, resxAccessLevel: ResxAccessLevel): Headers {
+  private decorateRequestHeaders(headers: WebHeaders, resxAccessLevel = ResxAccessLevel.PUBLIC): Headers {
     const reqHeaders = new Headers(headers);
     const accessHeader = resxAccessHeaderName(resxAccessLevel);
     if (accessHeader) {

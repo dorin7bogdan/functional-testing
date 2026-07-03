@@ -17,6 +17,8 @@ import Response from './response/response.js';
 import RunResponse from './response/runResponse.js';
 import JsonParser from './util/jsonParser.js';
 import Logger from '../../utils/logger.js';
+import path from 'path';
+import { config } from '../../config/config.js';
 
 type RunIdHandler = (runId: number) => void | Promise<void>;
 const logger = new Logger('RunManager');
@@ -28,8 +30,7 @@ export default class RunManager {
 
   constructor(
     private readonly client: IClient,
-    private readonly args: Args,
-    private readonly rptUrlFilePath: string
+    private readonly args: Args
   ) {
     this.runHandler = new RunHandlerFactory().create(client, args.runType, args.entityId);
     this.pollHandler = new PollHandlerFactory().create(client, args.runType, args.entityId);
@@ -40,21 +41,26 @@ export default class RunManager {
     this.runIdHandlers.push(handler);
   }
 
-  public async execute(): Promise<TestSuites | null> {
+  public async execute(): Promise<{ testSuites: TestSuites | null, rptUrlFilePath: string }> {
     logger.debug(`execute: ...`);
-    let res: TestSuites | null = null;
+    let testSuites: TestSuites | null = null;
+    let rptUrlFilePath = "";
+    let isOK = false;
     const authHandler = AuthManager.instance;
     this.isLoggedIn = await authHandler.authenticate(this.client);
     if (this.isLoggedIn) {
-      if (await this.isValidBvsOrTestSet() && await this.start()) {
-        if (await this.pollHandler.poll()) {
-          res = await this.publish();
+      if (await this.isValidBvsOrTestSet()) {
+        ({ isOK, rptUrlFilePath } = await this.start());
+        if (isOK) {
+          if (await this.pollHandler.poll()) {
+            testSuites = await this.publish();
+          }
         }
       }
       await authHandler.logout(this.client);
       this.isLoggedIn = false;
     }
-    return res;
+    return { testSuites, rptUrlFilePath };
   }
 
   private async publish(): Promise<TestSuites | null> {
@@ -68,27 +74,30 @@ export default class RunManager {
     return await publisher.publish(this.args.serverUrl, this.args.domain, this.args.project);
   }
 
-  private async start(): Promise<boolean> {
+  private async start(): Promise<{ isOK: boolean, rptUrlFilePath: string }> {
     logger.debug(`start ...`);
-    let ok = false;
+    let isOK = false;
     const res = await this.runHandler.start(this.args.duration, this.args.envConfigId);
     if (this.isOK(res)) {
       const runResponse = this.runHandler.getRunResponse(res);
       await this.setRunId(runResponse);
-      ok = runResponse.isOK;
+      isOK = runResponse.isOK;
     }
-    await this.logReportUrl(ok);
-    return ok;
+    const rptUrlFilePath = await this.logReportUrl(isOK);
+    return { isOK, rptUrlFilePath };
   }
 
-  private async logReportUrl(hasSucceeded: boolean): Promise<void> {
+  private async logReportUrl(hasSucceeded: boolean): Promise<string> {
     logger.debug(`logReportUrl: hasSucceeded=${hasSucceeded}`);
     if (hasSucceeded) {
       const reportUrl = await this.runHandler.reportUrl(this.args);
-      logger.info(`${this.args.runType} run report for run id ${this.runHandler.getRunId()} is at: ${reportUrl}`);
+      const runId = this.runHandler.getRunId();
+      logger.info(`${this.args.runType} run report for run id ${runId} is at: ${reportUrl}`);
       try {
-        await fs.appendFile(this.rptUrlFilePath, `[Report ${this.runHandler.getRunId()}](${reportUrl})\n`, { encoding: 'utf8' });
-        logger.info(`Created the report URL file [${this.rptUrlFilePath}].`);
+        const rptUrlFilePath = path.join(config.runnerWsPath, `run-id-${runId}-report-url.txt`);
+        await fs.appendFile(rptUrlFilePath, `[Report ${runId}](${reportUrl})\n`, { encoding: 'utf8' });
+        logger.info(`Created the report URL file [${rptUrlFilePath}].`);
+        return rptUrlFilePath;
       } catch (error: any) {
         logger.error(error?.message ?? `${error}`);
       }
@@ -97,6 +106,7 @@ export default class RunManager {
       const note = 'Note: You can run only functional test sets and build verification suites using this task. Check to make sure that the configured ID is valid (and that it is not a performance test ID).';
       logger.error(`${errMsg}\n${note}`);
     }
+    return "";
   }
 
   private async setRunId(runRes: RunResponse): Promise<void> {

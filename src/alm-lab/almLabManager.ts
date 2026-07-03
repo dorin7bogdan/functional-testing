@@ -11,38 +11,29 @@ import RestClient from './sdk/client/restClient.js';
 import RunManager from './sdk/runManager.js';
 
 const logger = new Logger('AlmLabManager');
-const REPORT_URL_TXT = 'report-url.txt';
 
 export default class AlmLabManager {
-  private _runIdFilePath: string | null = null;
-  private readonly _rptUrlFilePath: string;
-  public get runIdFilePath(): string | null {
-    return this._runIdFilePath;
-  }
-  public get rptUrlFilePath(): string {
-    return this._rptUrlFilePath;
-  }
+  private runIdFilePath?: string;
   public constructor(private readonly xmlResFileName: string) {
     logger.debug(`ctor() ...`);
-    this._rptUrlFilePath = path.join(config.runnerWsPath, REPORT_URL_TXT);
   }
-  public async run(): Promise<ExitCode> {
+  public async run(): Promise<{ exitCode: ExitCode, runIdFilePath: string, rptUrlFilePath: string }> {
     logger.debug(`run() ...`);
     const resultsFilePath = path.join(config.runnerWsPath, this.xmlResFileName);
     const runMgr = this.getRunManager();
-    const hasResults = await this.runLab(resultsFilePath, runMgr);
+    const { hasResults, rptUrlFilePath } = await this.runLab(resultsFilePath, runMgr);
     const exitCode = hasResults ? ExitCode.Passed : ExitCode.Failed;
     logger.debug(`run: ExitCode: ${exitCode}`);
-    return exitCode;
+    return { exitCode, runIdFilePath: this.runIdFilePath ?? '', rptUrlFilePath };
   }
 
-  private async runLab(resultsFilePath: string, runMgr: RunManager): Promise<boolean> {
+  private async runLab(resultsFilePath: string, runMgr: RunManager): Promise<{ hasResults: boolean, rptUrlFilePath: string }> {
     logger.debug(`runLab() ...`);
-    const testSuites = await runMgr.execute();
+    const { testSuites, rptUrlFilePath } = await runMgr.execute();
     if (await this.saveResults(resultsFilePath, testSuites)) {
-      return testSuites?.items.some((suite) => suite.testCases.length > 0) === true;
+      return { hasResults: testSuites?.items.some((suite) => suite.testCases.length > 0) === true, rptUrlFilePath };
     }
-    return false;
+    return { hasResults: false, rptUrlFilePath };
   }
 
   private getRunManager(): RunManager {
@@ -70,9 +61,9 @@ export default class AlmLabManager {
 
     const client = new RestClient(args.serverUrl, cred, args.domain, args.project);
 
-    const runManager = new RunManager(client, args, this._rptUrlFilePath);
+    const runManager = new RunManager(client, args);
     runManager.onRunIdGenerated(async (runId: number) => {
-      await this.runIdGenerated(runId);
+      this.runIdFilePath = await this.runIdGenerated(runId);
     });
     return runManager;
   }
@@ -87,17 +78,19 @@ export default class AlmLabManager {
     throw new Error('Either "almTestSetId" or "almBvsId" must be a positive integer');
   }
 
-  public async runIdGenerated(runId: number): Promise<void> {
+  private async runIdGenerated(runId: number): Promise<string> {
     logger.debug(`runIdGenerated: "${runId}"`);
     if (!runId) {
-      return;
+      return '';
     }
-    this._runIdFilePath = path.join(config.runnerWsPath, `${runId}.runid`);
     try {
-      logger.debug(`runIdGenerated: Creating [${this._runIdFilePath}] ...`);
-      await fs.writeFile(this._runIdFilePath, '', { encoding: 'utf8' });
+      const runIdFilePath = path.join(config.runnerWsPath, `${runId}.runid`);
+      logger.debug(`runIdGenerated: Creating [${runIdFilePath}] ...`);
+      await fs.writeFile(runIdFilePath, '', { encoding: 'utf8' });
+      return runIdFilePath;
     } catch (error) {
-      logger.warn(`Error creating the run ID file [${this._runIdFilePath}]: ${error}`);
+      logger.warn(`Error creating the file "${runId}.runid": ${error}`);
+      return '';
     }
   }
 
