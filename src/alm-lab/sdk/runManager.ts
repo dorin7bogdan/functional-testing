@@ -41,16 +41,16 @@ export default class RunManager {
     this.runIdHandlers.push(handler);
   }
 
-  public async execute(): Promise<{ testSuites: TestSuites | null, rptUrlFilePath: string }> {
+  public async execute(): Promise<{ testSuites: TestSuites | null, rptUrlFileName: string }> {
     logger.debug(`execute: ...`);
     let testSuites: TestSuites | null = null;
-    let rptUrlFilePath = "";
+    let rptUrlFileName = "";
     let isOK = false;
     const authHandler = AuthManager.instance;
     this.isLoggedIn = await authHandler.authenticate(this.client);
     if (this.isLoggedIn) {
       if (await this.isValidBvsOrTestSet()) {
-        ({ isOK, rptUrlFilePath } = await this.start());
+        ({ isOK, rptUrlFileName } = await this.start());
         if (isOK) {
           if (await this.pollHandler.poll()) {
             testSuites = await this.publish();
@@ -60,7 +60,7 @@ export default class RunManager {
       await authHandler.logout(this.client);
       this.isLoggedIn = false;
     }
-    return { testSuites, rptUrlFilePath };
+    return { testSuites, rptUrlFileName };
   }
 
   private async publish(): Promise<TestSuites | null> {
@@ -74,7 +74,7 @@ export default class RunManager {
     return await publisher.publish(this.args.serverUrl, this.args.domain, this.args.project);
   }
 
-  private async start(): Promise<{ isOK: boolean, rptUrlFilePath: string }> {
+  private async start(): Promise<{ isOK: boolean, rptUrlFileName: string }> {
     logger.debug(`start ...`);
     let isOK = false;
     const res = await this.runHandler.start(this.args.duration, this.args.envConfigId);
@@ -83,8 +83,8 @@ export default class RunManager {
       await this.setRunId(runResponse);
       isOK = runResponse.isOK;
     }
-    const rptUrlFilePath = await this.logReportUrl(isOK);
-    return { isOK, rptUrlFilePath };
+    const rptUrlFileName = await this.logReportUrl(isOK);
+    return { isOK, rptUrlFileName };
   }
 
   private async logReportUrl(hasSucceeded: boolean): Promise<string> {
@@ -94,10 +94,11 @@ export default class RunManager {
       const runId = this.runHandler.getRunId();
       logger.info(`${this.args.runType} run report for run id ${runId} is at: ${reportUrl}`);
       try {
-        const rptUrlFilePath = path.join(config.runnerWsPath, `run-id-${runId}-report-url.txt`);
+        const rptUrlFileName = `run-id-${runId}-report-url.txt`;
+        const rptUrlFilePath = path.join(config.runnerWsPath, rptUrlFileName);
         await fs.appendFile(rptUrlFilePath, `[Report ${runId}](${reportUrl})\n`, { encoding: 'utf8' });
-        logger.info(`Created the report URL file [${rptUrlFilePath}].`);
-        return rptUrlFilePath;
+        logger.info(`Created the report URL file "${rptUrlFileName}".`);
+        return rptUrlFileName;
       } catch (error: any) {
         logger.error(error?.message ?? `${error}`);
       }

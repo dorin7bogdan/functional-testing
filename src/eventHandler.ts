@@ -126,24 +126,23 @@ export const handleCurrentEvent = async (): Promise<void> => {
         const { propsFileName, xmlResFileName } = await FtTestExecuter.preProcess(runType);
         filesToCleanup.push(propsFileName, xmlResFileName);
         const almLabMgr = new AlmLabManager(xmlResFileName);
-        const { exitCode: exCode, runIdFilePath, rptUrlFilePath } = await almLabMgr.run();
+        const { exitCode: exCode, runIdFilePath, rptUrlFileName } = await almLabMgr.run();
         exitCode = exCode;
-        filesToCleanup.push(rptUrlFilePath);
-        runIdFilePath && filesToCleanup.push(runIdFilePath);
+        filesToCleanup.push(rptUrlFileName, runIdFilePath, JUNIT_RES_XML);
         reportPaths = await buildJUnitReport(xmlResFileName);
         await uploadArtifacts(propsFileName, xmlResFileName, JUNIT_RES_XML, reportPaths);
       }
-      logger.info(`END run: ExitCode=${exitCode}.`);
       return exitCode;
     } catch (error) {
       logger.error(`run: ${error}`);
       return ExitCode.Unknown;
     } finally {
+      logger.info(`run: cleanupTestRunFiles=${config.cleanupTestRunFiles}, filesToCleanup=${filesToCleanup.length}, reportPaths=${reportPaths.length}`);
       if (config.cleanupTestRunFiles) {
         await cleanupReportFolders(reportPaths);
-        await cleanupTempFiles(filesToCleanup.filter((f): f is string => f !== undefined));
+        await cleanupTempFiles(filesToCleanup.filter((f): f is string => f !== undefined && f !== ""));
       }
-      logger.debug(`END run.`);
+      logger.info(`END run: ExitCode=${exitCode}.`);
     }
   }
 };
@@ -246,7 +245,7 @@ const uploadArtifact = async (fileName: string, artifactName: string) => {
 }
 
 const cleanupTempFiles = async (fileNames: string[]) => {
-  logger.debug(`cleanupTempFiles: ${fileNames.join(', ')} ...`);
+  logger.info(`cleanupTempFiles: ${fileNames.join(', ')} ...`);
   await Promise.all(fileNames.map(async (fileName) => {
     if (fileName) {
       const fullPathFile = path.join(config.runnerWsPath, fileName);

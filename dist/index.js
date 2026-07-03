@@ -89177,7 +89177,7 @@ class Logger {
         1: { value: 1, display: 'TRACE' },
         2: { value: 2, display: 'DEBUG' },
         3: { value: 3, display: 'INFO' },
-        4: { value: 4, display: 'WARNING' },
+        4: { value: 4, display: 'WARN' },
         5: { value: 5, display: 'ERROR' }
     };
     constructor(module) {
@@ -138481,13 +138481,13 @@ class RunManager {
     async execute() {
         runManager_logger.debug(`execute: ...`);
         let testSuites = null;
-        let rptUrlFilePath = "";
+        let rptUrlFileName = "";
         let isOK = false;
         const authHandler = AuthManager.instance;
         this.isLoggedIn = await authHandler.authenticate(this.client);
         if (this.isLoggedIn) {
             if (await this.isValidBvsOrTestSet()) {
-                ({ isOK, rptUrlFilePath } = await this.start());
+                ({ isOK, rptUrlFileName } = await this.start());
                 if (isOK) {
                     if (await this.pollHandler.poll()) {
                         testSuites = await this.publish();
@@ -138497,7 +138497,7 @@ class RunManager {
             await authHandler.logout(this.client);
             this.isLoggedIn = false;
         }
-        return { testSuites, rptUrlFilePath };
+        return { testSuites, rptUrlFileName };
     }
     async publish() {
         runManager_logger.debug(`publish ...`);
@@ -138513,8 +138513,8 @@ class RunManager {
             await this.setRunId(runResponse);
             isOK = runResponse.isOK;
         }
-        const rptUrlFilePath = await this.logReportUrl(isOK);
-        return { isOK, rptUrlFilePath };
+        const rptUrlFileName = await this.logReportUrl(isOK);
+        return { isOK, rptUrlFileName };
     }
     async logReportUrl(hasSucceeded) {
         runManager_logger.debug(`logReportUrl: hasSucceeded=${hasSucceeded}`);
@@ -138523,10 +138523,11 @@ class RunManager {
             const runId = this.runHandler.getRunId();
             runManager_logger.info(`${this.args.runType} run report for run id ${runId} is at: ${reportUrl}`);
             try {
-                const rptUrlFilePath = external_path_default().join(config.runnerWsPath, `run-id-${runId}-report-url.txt`);
+                const rptUrlFileName = `run-id-${runId}-report-url.txt`;
+                const rptUrlFilePath = external_path_default().join(config.runnerWsPath, rptUrlFileName);
                 await external_fs_.promises.appendFile(rptUrlFilePath, `[Report ${runId}](${reportUrl})\n`, { encoding: 'utf8' });
-                runManager_logger.info(`Created the report URL file [${rptUrlFilePath}].`);
-                return rptUrlFilePath;
+                runManager_logger.info(`Created the report URL file "${rptUrlFileName}".`);
+                return rptUrlFileName;
             }
             catch (error) {
                 runManager_logger.error(error?.message ?? `${error}`);
@@ -138648,18 +138649,18 @@ class AlmLabManager {
         almLabManager_logger.debug(`run() ...`);
         const resultsFilePath = external_path_.join(config.runnerWsPath, this.xmlResFileName);
         const runMgr = this.getRunManager();
-        const { hasResults, rptUrlFilePath } = await this.runLab(resultsFilePath, runMgr);
+        const { hasResults, rptUrlFileName } = await this.runLab(resultsFilePath, runMgr);
         const exitCode = hasResults ? ExitCode_ExitCode.Passed : ExitCode_ExitCode.Failed;
         almLabManager_logger.debug(`run: ExitCode: ${exitCode}`);
-        return { exitCode, runIdFilePath: this.runIdFilePath ?? '', rptUrlFilePath };
+        return { exitCode, runIdFilePath: this.runIdFilePath ?? '', rptUrlFileName };
     }
     async runLab(resultsFilePath, runMgr) {
         almLabManager_logger.debug(`runLab() ...`);
-        const { testSuites, rptUrlFilePath } = await runMgr.execute();
+        const { testSuites, rptUrlFileName } = await runMgr.execute();
         if (await this.saveResults(resultsFilePath, testSuites)) {
-            return { hasResults: testSuites?.items.some((suite) => suite.testCases.length > 0) === true, rptUrlFilePath };
+            return { hasResults: testSuites?.items.some((suite) => suite.testCases.length > 0) === true, rptUrlFileName };
         }
-        return { hasResults: false, rptUrlFilePath };
+        return { hasResults: false, rptUrlFileName };
     }
     getRunManager() {
         const c = config.almLab;
@@ -138694,15 +138695,15 @@ class AlmLabManager {
             return '';
         }
         try {
-            const runIdFilePath = external_path_.join(config.runnerWsPath, `${runId}.runid`);
-            almLabManager_logger.debug(`runIdGenerated: Creating [${runIdFilePath}] ...`);
-            await promises_namespaceObject.writeFile(runIdFilePath, '', { encoding: 'utf8' });
-            return runIdFilePath;
+            /*const runIdFilePath = path.join(config.runnerWsPath, `${runId}.runid`);
+            logger.debug(`runIdGenerated: Creating [${runIdFilePath}] ...`);
+            await fs.writeFile(runIdFilePath, '', { encoding: 'utf8' });
+            return runIdFilePath;*/
         }
         catch (error) {
             almLabManager_logger.warn(`Error creating the file "${runId}.runid": ${error}`);
-            return '';
         }
+        return '';
     }
     async saveResults(filePath, testSuites) {
         almLabManager_logger.debug(`saveResults: "${filePath}"`);
@@ -138839,14 +138840,12 @@ const handleCurrentEvent = async () => {
                 const { propsFileName, xmlResFileName } = await FtTestExecuter.preProcess(runType);
                 filesToCleanup.push(propsFileName, xmlResFileName);
                 const almLabMgr = new AlmLabManager(xmlResFileName);
-                const { exitCode: exCode, runIdFilePath, rptUrlFilePath } = await almLabMgr.run();
+                const { exitCode: exCode, runIdFilePath, rptUrlFileName } = await almLabMgr.run();
                 exitCode = exCode;
-                filesToCleanup.push(rptUrlFilePath);
-                runIdFilePath && filesToCleanup.push(runIdFilePath);
+                filesToCleanup.push(rptUrlFileName, runIdFilePath, JUNIT_RES_XML);
                 reportPaths = await buildJUnitReport(xmlResFileName);
                 await uploadArtifacts(propsFileName, xmlResFileName, JUNIT_RES_XML, reportPaths);
             }
-            eventHandler_logger.info(`END run: ExitCode=${exitCode}.`);
             return exitCode;
         }
         catch (error) {
@@ -138854,11 +138853,12 @@ const handleCurrentEvent = async () => {
             return ExitCode_ExitCode.Unknown;
         }
         finally {
+            eventHandler_logger.info(`run: cleanupTestRunFiles=${config.cleanupTestRunFiles}, filesToCleanup=${filesToCleanup.length}, reportPaths=${reportPaths.length}`);
             if (config.cleanupTestRunFiles) {
                 await cleanupReportFolders(reportPaths);
-                await cleanupTempFiles(filesToCleanup.filter((f) => f !== undefined));
+                await cleanupTempFiles(filesToCleanup.filter((f) => f !== undefined && f !== ""));
             }
-            eventHandler_logger.debug(`END run.`);
+            eventHandler_logger.info(`END run: ExitCode=${exitCode}.`);
         }
     }
 };
@@ -138948,7 +138948,7 @@ const eventHandler_uploadArtifact = async (fileName, artifactName) => {
     fileName && await GitHubClient.uploadArtifact(config.runnerWsPath, fileName, artifactName);
 };
 const cleanupTempFiles = async (fileNames) => {
-    eventHandler_logger.debug(`cleanupTempFiles: ${fileNames.join(', ')} ...`);
+    eventHandler_logger.info(`cleanupTempFiles: ${fileNames.join(', ')} ...`);
     await Promise.all(fileNames.map(async (fileName) => {
         if (fileName) {
             const fullPathFile = external_path_.join(config.runnerWsPath, fileName);

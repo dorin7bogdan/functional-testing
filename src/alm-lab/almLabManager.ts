@@ -17,23 +17,23 @@ export default class AlmLabManager {
   public constructor(private readonly xmlResFileName: string) {
     logger.debug(`ctor() ...`);
   }
-  public async run(): Promise<{ exitCode: ExitCode, runIdFilePath: string, rptUrlFilePath: string }> {
+  public async run(): Promise<{ exitCode: ExitCode, runIdFilePath: string, rptUrlFileName: string }> {
     logger.debug(`run() ...`);
     const resultsFilePath = path.join(config.runnerWsPath, this.xmlResFileName);
     const runMgr = this.getRunManager();
-    const { hasResults, rptUrlFilePath } = await this.runLab(resultsFilePath, runMgr);
+    const { hasResults, rptUrlFileName } = await this.runLab(resultsFilePath, runMgr);
     const exitCode = hasResults ? ExitCode.Passed : ExitCode.Failed;
     logger.debug(`run: ExitCode: ${exitCode}`);
-    return { exitCode, runIdFilePath: this.runIdFilePath ?? '', rptUrlFilePath };
+    return { exitCode, runIdFilePath: this.runIdFilePath ?? '', rptUrlFileName };
   }
 
-  private async runLab(resultsFilePath: string, runMgr: RunManager): Promise<{ hasResults: boolean, rptUrlFilePath: string }> {
+  private async runLab(resultsFilePath: string, runMgr: RunManager): Promise<{ hasResults: boolean, rptUrlFileName: string }> {
     logger.debug(`runLab() ...`);
-    const { testSuites, rptUrlFilePath } = await runMgr.execute();
+    const { testSuites, rptUrlFileName } = await runMgr.execute();
     if (await this.saveResults(resultsFilePath, testSuites)) {
-      return { hasResults: testSuites?.items.some((suite) => suite.testCases.length > 0) === true, rptUrlFilePath };
+      return { hasResults: testSuites?.items.some((suite) => suite.testCases.length > 0) === true, rptUrlFileName };
     }
-    return { hasResults: false, rptUrlFilePath };
+    return { hasResults: false, rptUrlFileName };
   }
 
   private getRunManager(): RunManager {
@@ -84,14 +84,14 @@ export default class AlmLabManager {
       return '';
     }
     try {
-      const runIdFilePath = path.join(config.runnerWsPath, `${runId}.runid`);
+      /*const runIdFilePath = path.join(config.runnerWsPath, `${runId}.runid`);
       logger.debug(`runIdGenerated: Creating [${runIdFilePath}] ...`);
       await fs.writeFile(runIdFilePath, '', { encoding: 'utf8' });
-      return runIdFilePath;
+      return runIdFilePath;*/
     } catch (error) {
       logger.warn(`Error creating the file "${runId}.runid": ${error}`);
-      return '';
     }
+    return '';
   }
 
   private async saveResults(filePath: string, testSuites: TestSuites | null): Promise<boolean> {
