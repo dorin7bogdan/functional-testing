@@ -1,6 +1,6 @@
-import { Constants } from '../constants.js';
+import { Constants } from '../util/constants.js';
 import IClient from '../interface/iClient.js';
-import { WebHeaders } from '../response.js';
+import { WebHeaders } from '../response/response.js';
 import GetRequest from './getRequest.js';
 
 export default class GetLabRunEntityTestSetRunsRequest extends GetRequest {
@@ -18,8 +18,8 @@ export default class GetLabRunEntityTestSetRunsRequest extends GetRequest {
 
   protected override get headers(): WebHeaders {
     return {
-      'Content-Type': Constants.APP_XML,
-      Accept: Constants.APP_XML
+      'Content-Type': Constants.APP_JSON,
+      Accept: Constants.APP_JSON
     };
   }
 }

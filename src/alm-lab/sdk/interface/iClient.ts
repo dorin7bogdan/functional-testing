@@ -1,6 +1,6 @@
-import Credentials from '../credentials.js';
-import Response, { WebHeaders } from '../response.js';
-import { ResxAccessLevel } from '../resxAccessLevel.js';
+import Credentials from '../util/credentials.js';
+import Response, { WebHeaders } from '../response/response.js';
+import { ResxAccessLevel } from '../util/resxAccessLevel.js';
 
 export default interface IClient {
   httpGet(
@@ -11,13 +11,6 @@ export default interface IClient {
   ): Promise<Response>;
 
   httpPost(
-    url: string,
-    headers?: WebHeaders,
-    body?: string,
-    resxAccessLevel?: ResxAccessLevel
-  ): Promise<Response>;
-
-  httpPut(
     url: string,
     headers?: WebHeaders,
     body?: string,

@@ -1,6 +1,6 @@
 import Logger from '../../../utils/logger.js';
-import { Constants } from '../constants.js';
-import { WebHeaders } from '../response.js';
+import { Constants } from '../util/constants.js';
+import { WebHeaders } from '../response/response.js';
 import IAuthenticator from '../interface/iAuthenticator.js';
 import IClient from '../interface/iClient.js';
 

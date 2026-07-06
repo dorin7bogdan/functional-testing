@@ -1,8 +1,8 @@
 import Logger from '../../../utils/logger.js';
-import Response from '../response.js';
+import Response from '../response/response.js';
 import IClient from '../interface/iClient.js';
 import EventLogRequest from '../request/eventLogRequest.js';
-import Xml, { EntityMap } from '../util/xml.js';
+import JsonParser, { EntityMap } from '../util/jsonParser.js';
 import HandlerBase from './handlerBase.js';
 
 const CREATION_TIME = 'creation-time';
@@ -23,7 +23,7 @@ export default class EventLogHandler extends HandlerBase {
     let eventLog: Response | null = null;
     try {
       eventLog = await this.getEventLog();
-      const entities = Xml.toEntities(eventLog.toString());
+      const entities = JsonParser.toEntities(eventLog.toString());
       for (const currEntity of entities) {
         if (this.isNew(currEntity)) {
           logger.info(`${currEntity[CREATION_TIME]}:${currEntity[DESCRIPTION]}`);

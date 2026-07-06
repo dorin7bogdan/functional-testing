@@ -1,6 +1,6 @@
 import Logger from '../../../utils/logger.js';
-import { Constants } from '../constants.js';
-import { WebHeaders } from '../response.js';
+import { Constants } from '../util/constants.js';
+import { WebHeaders } from '../response/response.js';
 import IAuthenticator from '../interface/iAuthenticator.js';
 import IClient from '../interface/iClient.js';
 
@@ -19,9 +19,13 @@ const appendSuffix = (base: string, suffix: string): string => {
   return `${normalizedBase}/${normalizedSuffix}`;
 };
 
-const getTagValue = (xml: string, tagName: string): string | undefined => {
-  const match = new RegExp(`<${tagName}>([\\s\\S]*?)<\\/${tagName}>`, 'i').exec(xml);
-  return match?.[1]?.trim();
+const getTagValue = (json: string, tagName: string): string | undefined => {
+  try {
+    const obj = JSON.parse(json);
+    return obj[tagName]?.toString();
+  } catch {
+    return undefined;
+  }
 };
 
 export default class RestAuthenticator implements IAuthenticator {
@@ -61,14 +65,14 @@ export default class RestAuthenticator implements IAuthenticator {
   private async appendQCSessionCookies(client: IClient): Promise<boolean> {
     logger.info('Creating session...');
     const headers: WebHeaders = {
-      'Content-Type': Constants.APP_XML,
-      Accept: Constants.APP_XML
+      'Content-Type': Constants.APP_JSON,
+      Accept: Constants.APP_JSON
     };
 
     const res = await client.httpPost(
       appendSuffix(client.serverUrl, SESSION_ENDPOINT),
       headers,
-      `<session-parameters><client-type></client-type></session-parameters>`
+      "{session-parameters: {client-type: \"\"}}"
     );
     const ok = res.isOK;
     logger.info(ok ? 'Session created.' : `Cannot append QCSession cookies. Error: ${res.error}`);
@@ -94,13 +98,13 @@ export default class RestAuthenticator implements IAuthenticator {
     let ok = false;
     logger.info(CHECK_IF_AUTHENTICATED);
     const url = appendSuffix(client.serverUrl, IS_AUTH_ENDPOINT);
-    const res = await client.httpGet(url, { Accept: Constants.APP_XML });
+    const res = await client.httpGet(url, { Accept: Constants.APP_JSON });
 
     if (res.isOK) {
-      const xml = res.data ?? '';
-      logger.debug(xml);
+      const json = res.data ?? '';
+      logger.debug(json);
       try {
-        const uname = getTagValue(xml, USERNAME);
+        const uname = getTagValue(json, USERNAME);
         if (uname === username) {
           ok = true;
         } else {

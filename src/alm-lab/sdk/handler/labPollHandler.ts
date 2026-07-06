@@ -1,7 +1,7 @@
-import Response from '../response.js';
+import Response from '../response/response.js';
 import GetLabRunEntityDataRequest from '../request/getLabRunEntityDataRequest.js';
 import PollAlmLabMgmtRunRequest from '../request/pollAlmLabMgmtRunRequest.js';
-import Xml from '../util/xml.js';
+import JsonParser from '../util/jsonParser.js';
 import EventLogHandler from './eventLogHandler.js';
 import PollHandler from './pollHandler.js';
 import IClient from '../interface/iClient.js';
@@ -47,10 +47,10 @@ export default class LabPollHandler extends PollHandler {
   protected override isFinished(response: Response): boolean {
     try {
       const xml = response.toString();
-      const endTime = Xml.getAttributeValue(xml, END_TIME);
+      const endTime = JsonParser.getAttrVal(xml, END_TIME);
       if (endTime.trim().length > 0) {
-        const startTime = Xml.getAttributeValue(xml, START_TIME);
-        const currentRunState = Xml.getAttributeValue(xml, STATE);
+        const startTime = JsonParser.getAttrVal(xml, START_TIME);
+        const currentRunState = JsonParser.getAttrVal(xml, STATE);
         logger.info(
           `Timeslot ${this.timeslotId} is [${currentRunState}].\nRun start time: [${startTime}], Run end time: [${endTime}]`
         );
@@ -66,8 +66,8 @@ export default class LabPollHandler extends PollHandler {
   protected override logRunEntityResults(response: Response): boolean {
     try {
       const xml = response.toString();
-      const state = Xml.getAttributeValue(xml, STATE);
-      const completedSuccessfully = Xml.getAttributeValue(xml, COMPLETED_SUCCESSFULLY);
+      const state = JsonParser.getAttrVal(xml, STATE);
+      const completedSuccessfully = JsonParser.getAttrVal(xml, COMPLETED_SUCCESSFULLY);
       logger.debug(`Run state of ${this.runId}: ${state}, Completed successfully: ${completedSuccessfully}`);
       return true;
     } catch {
@@ -92,7 +92,7 @@ export default class LabPollHandler extends PollHandler {
 
   private getTimeslotId(response: Response): string {
     try {
-      return Xml.getAttributeValue(response.toString(), RESERVATION_ID);
+      return JsonParser.getAttrVal(response.toString(), RESERVATION_ID);
     } catch {
       logger.error(`Failed to parse response for timeslot ID: ${response.toString()}`);
       return '';

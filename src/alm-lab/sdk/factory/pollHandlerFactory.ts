@@ -1,4 +1,4 @@
-import { Constants, LabRunType } from '../constants.js';
+import { Constants, LabRunType } from '../util/constants.js';
 import LabPollHandler from '../handler/labPollHandler.js';
 import PollHandler from '../handler/pollHandler.js';
 import IClient from '../interface/iClient.js';

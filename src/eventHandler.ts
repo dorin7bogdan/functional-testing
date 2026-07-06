@@ -35,7 +35,7 @@ import * as path from 'path';
 import GitHubClient from './client/githubClient.js';
 import { ExitCode } from './ft/ExitCode.js';
 import FtTestExecuter from './ft/FtTestExecuter.js';
-import * as fs from 'fs-extra';
+import fs from 'fs-extra';
 import JUnitParser from './reporting/JUnitParser.js';
 import { RunType } from './dto/RunType.js';
 import { checkoutRepo } from './utils/utils.js';
@@ -111,32 +111,38 @@ export const handleCurrentEvent = async (): Promise<void> => {
 
   async function run(): Promise<ExitCode> {
     logger.debug(`BEGIN run: ...`);
-    let propsFileName: string | undefined;
-    let xmlResFileName: string | undefined;
-    let encryptionKey: string | undefined;
+    const filesToCleanup: string[] = [];
     let reportPaths: string[] = [];
     let exitCode = ExitCode.Unknown;
     try {
       if ([RunType.FS, RunType.ALM].includes(runType)) {
-        ({ propsFileName, xmlResFileName, encryptionKey } = await FtTestExecuter.preProcess(runType, testOrTestSetPaths));
+        const { propsFileName, xmlResFileName, encryptionKey } = await FtTestExecuter.preProcess(runType, testOrTestSetPaths);
+        filesToCleanup.push(propsFileName, xmlResFileName);
         exitCode = await FtTestExecuter.process(propsFileName, encryptionKey);
         reportPaths = await buildJUnitReport(xmlResFileName);
-        await uploadArtifacts(propsFileName, xmlResFileName, reportPaths);
+        filesToCleanup.push(JUNIT_RES_XML);
+        await uploadArtifacts(propsFileName, xmlResFileName, JUNIT_RES_XML, reportPaths);
       } else if (runType === RunType.ALMLab) {
-        exitCode = await AlmLabManager.run();
-        //TODO buildJUnitReport + uploadArtifacts
+        const { propsFileName, xmlResFileName } = await FtTestExecuter.preProcess(runType);
+        filesToCleanup.push(propsFileName, xmlResFileName);
+        const almLabMgr = new AlmLabManager(xmlResFileName);
+        const { exitCode: exCode, runIdFilePath, rptUrlFileName } = await almLabMgr.run();
+        exitCode = exCode;
+        filesToCleanup.push(rptUrlFileName, runIdFilePath, JUNIT_RES_XML);
+        reportPaths = await buildJUnitReport(xmlResFileName);
+        await uploadArtifacts(propsFileName, xmlResFileName, JUNIT_RES_XML, reportPaths);
       }
-      logger.info(`END run: ExitCode=${exitCode}.`);
       return exitCode;
     } catch (error) {
       logger.error(`run: ${error}`);
       return ExitCode.Unknown;
     } finally {
+      logger.info(`run: cleanupTestRunFiles=${config.cleanupTestRunFiles}, filesToCleanup=${filesToCleanup.length}, reportPaths=${reportPaths.length}`);
       if (config.cleanupTestRunFiles) {
         await cleanupReportFolders(reportPaths);
-        await cleanupTempFiles([propsFileName, xmlResFileName, JUNIT_RES_XML].filter((f): f is string => f !== undefined));
+        await cleanupTempFiles(filesToCleanup.filter((f): f is string => f !== undefined && f !== ""));
       }
-      logger.debug(`END run.`);
+      logger.info(`END run: ExitCode=${exitCode}.`);
     }
   }
 };
@@ -210,21 +216,20 @@ const resolveRptArtifactNames = (reportPaths: string[]): Map<string, string> => 
   return artifactNames;
 }
 
-const uploadArtifacts = async (propsFileName: string, xmlResFileName: string, reportPaths: string[]) => {
+const uploadArtifacts = async (propsFileName: string, xmlResFileName: string, junitResFileName: string = "", reportPaths: string[] = []) => {
   logger.debug(`uploadArtifacts: "${propsFileName}", "${xmlResFileName}", reportPaths=${reportPaths.length} ...`);
-
-  const rptArtifactNames = resolveRptArtifactNames(reportPaths);
 
   await Promise.all([
     uploadArtifact(propsFileName, "props-txt"),
     uploadArtifact(xmlResFileName, "summary-results-xml"),
-    uploadArtifact(JUNIT_RES_XML, "junit-results-xml")
+    uploadArtifact(junitResFileName, "junit-results-xml")
   ]);
   if (reportPaths.length) {
     if (config.archiveReportsAsSingleArtifact) {
       logger.debug(`uploadArtifacts: Archiving all reports as a single artifact "ft-reports" ...`);
       await GitHubClient.uploadArtifacts(config.runnerWsPath, reportPaths, "ft-reports")
     } else {
+      const rptArtifactNames = resolveRptArtifactNames(reportPaths);
       logger.debug(`uploadArtifacts: Archiving all reports as individual artifacts ...`);
       await Promise.all([
         ...reportPaths.map(p =>
@@ -236,11 +241,11 @@ const uploadArtifacts = async (propsFileName: string, xmlResFileName: string, re
 }
 
 const uploadArtifact = async (fileName: string, artifactName: string) => {
-  await GitHubClient.uploadArtifact(config.runnerWsPath, fileName, artifactName);
+  fileName && await GitHubClient.uploadArtifact(config.runnerWsPath, fileName, artifactName);
 }
 
 const cleanupTempFiles = async (fileNames: string[]) => {
-  logger.debug(`cleanupTempFiles: ${fileNames.join(', ')} ...`);
+  logger.info(`cleanupTempFiles: ${fileNames.join(', ')} ...`);
   await Promise.all(fileNames.map(async (fileName) => {
     if (fileName) {
       const fullPathFile = path.join(config.runnerWsPath, fileName);

@@ -38,7 +38,7 @@ enum LogLevel {
 }
 
 export default class Logger {
-  isDebugEnabled() {
+  public get isDebugEnabled() {
     return LogLevel.DEBUG >= this.minLevel;
   }
   private minLevel: number;
@@ -49,7 +49,7 @@ export default class Logger {
     1: { value: 1, display: 'TRACE' },
     2: { value: 2, display: 'DEBUG' },
     3: { value: 3, display: 'INFO' },
-    4: { value: 4, display: 'WARNING' },
+    4: { value: 4, display: 'WARN' },
     5: { value: 5, display: 'ERROR' }
   };
 

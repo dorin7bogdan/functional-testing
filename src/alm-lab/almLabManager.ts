@@ -3,35 +3,40 @@ import * as path from 'path';
 import { config } from '../config/config.js';
 import { ExitCode } from '../ft/ExitCode.js';
 import Logger from '../utils/logger.js';
-import { getTimestamp } from '../utils/utils.js';
 import TestSuites from './result/testSuites.js';
-import Args from './sdk/args.js';
-import { Constants, LabRunType } from './sdk/constants.js';
-import Credentials from './sdk/credentials.js';
-import RestClient from './sdk/restClient.js';
+import Args from './sdk/util/args.js';
+import { Constants, LabRunType } from './sdk/util/constants.js';
+import Credentials from './sdk/util/credentials.js';
+import RestClient from './sdk/client/restClient.js';
 import RunManager from './sdk/runManager.js';
 
 const logger = new Logger('AlmLabManager');
-const DEFAULT_REPORT_FILE_NAME = 'report.md'; // TODO review if this is OK
 
 export default class AlmLabManager {
-  public static async run(): Promise<ExitCode> {
-    const resultsFileName = `results_${getTimestamp()}.xml`;
-    const resultsFilePath = path.join(config.runnerWsPath, resultsFileName);
-    const runMgr = this.getRunManager(config.runnerWsPath);
-    const hasResults = await this.runLab(resultsFilePath, runMgr);
-    return hasResults ? ExitCode.Passed : ExitCode.Failed;
+  private runIdFilePath?: string;
+  public constructor(private readonly xmlResFileName: string) {
+    logger.debug(`ctor() ...`);
+  }
+  public async run(): Promise<{ exitCode: ExitCode, runIdFilePath: string, rptUrlFileName: string }> {
+    logger.debug(`run() ...`);
+    const resultsFilePath = path.join(config.runnerWsPath, this.xmlResFileName);
+    const runMgr = this.getRunManager();
+    const { hasResults, rptUrlFileName } = await this.runLab(resultsFilePath, runMgr);
+    const exitCode = hasResults ? ExitCode.Passed : ExitCode.Failed;
+    logger.debug(`run: ExitCode: ${exitCode}`);
+    return { exitCode, runIdFilePath: this.runIdFilePath ?? '', rptUrlFileName };
   }
 
-  private static async runLab(resultsFilePath: string, runMgr: RunManager): Promise<boolean> {
-    const testSuites = await runMgr.execute();
+  private async runLab(resultsFilePath: string, runMgr: RunManager): Promise<{ hasResults: boolean, rptUrlFileName: string }> {
+    logger.debug(`runLab() ...`);
+    const { testSuites, rptUrlFileName } = await runMgr.execute();
     if (await this.saveResults(resultsFilePath, testSuites)) {
-      return testSuites?.items.some((suite) => suite.testCases.length > 0) === true;
+      return { hasResults: testSuites?.items.some((suite) => suite.testCases.length > 0) === true, rptUrlFileName };
     }
-    return false;
+    return { hasResults: false, rptUrlFileName };
   }
 
-  private static getRunManager(reportPath: string): RunManager {
+  private getRunManager(): RunManager {
     const c = config.almLab;
     if (!c) {
       throw new Error('Missing alm-lab configuration');
@@ -56,14 +61,14 @@ export default class AlmLabManager {
 
     const client = new RestClient(args.serverUrl, cred, args.domain, args.project);
 
-    const runManager = new RunManager(client, args, path.join(reportPath, DEFAULT_REPORT_FILE_NAME));
+    const runManager = new RunManager(client, args);
     runManager.onRunIdGenerated(async (runId: number) => {
-      await this.onRunIdGenerated(reportPath, runId);
+      this.runIdFilePath = await this.runIdGenerated(runId);
     });
     return runManager;
   }
 
-  private static resolveRunType(almTestSetID?: number, almBVSID?: number): LabRunType {
+  private resolveRunType(almTestSetID?: number, almBVSID?: number): LabRunType {
     if (Number.isInteger(almTestSetID) && almTestSetID! > 0) {
       return Constants.TEST_SET;
     }
@@ -73,26 +78,30 @@ export default class AlmLabManager {
     throw new Error('Either "almTestSetId" or "almBvsId" must be a positive integer');
   }
 
-  private static async onRunIdGenerated(reportPath: string, runId: number): Promise<void> {
-    logger.debug(`onRunIdGenerated: ${runId}`);
+  private async runIdGenerated(runId: number): Promise<string> {
+    logger.debug(`runIdGenerated: "${runId}"`);
     if (!runId) {
-      return;
+      return '';
     }
-    const runIdFilePath = path.join(reportPath, `${runId}.runid`);
     try {
+      /*const runIdFilePath = path.join(config.runnerWsPath, `${runId}.runid`);
+      logger.debug(`runIdGenerated: Creating [${runIdFilePath}] ...`);
       await fs.writeFile(runIdFilePath, '', { encoding: 'utf8' });
+      return runIdFilePath;*/
     } catch (error) {
-      logger.warn(`Error creating the run ID file [${runIdFilePath}]: ${error}`);
+      logger.warn(`Error creating the file "${runId}.runid": ${error}`);
     }
+    return '';
   }
 
-  private static async saveResults(filePath: string, testSuites: TestSuites | null): Promise<boolean> {
+  private async saveResults(filePath: string, testSuites: TestSuites | null): Promise<boolean> {
     logger.debug(`saveResults: "${filePath}"`);
     if (!testSuites) {
       return false;
     }
     try {
       const xml = testSuites.toXML();
+      logger.debug(`saveResults: writing file ...`);
       await fs.writeFile(filePath, xml, { encoding: 'utf8' });
       return true;
     } catch (error) {

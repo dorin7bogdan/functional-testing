@@ -1,7 +1,7 @@
 import IClient from '../sdk/interface/iClient.js';
 import GetLabRunEntityTestSetRunsRequest from '../sdk/request/getLabRunEntityTestSetRunsRequest.js';
 import GetRequest from '../sdk/request/getRequest.js';
-import Xml from '../sdk/util/xml.js';
+import JsonParser from '../sdk/util/jsonParser.js';
 import Publisher from './publisher.js';
 import Logger from '../../utils/logger.js';
 
@@ -18,7 +18,7 @@ export default class LabPublisher extends Publisher {
     try {
       const response = await this.getRunEntityName();
       if (response.trim()) {
-        name = Xml.getAttributeValue(response, NAME) || name;
+        name = JsonParser.getAttrVal(response, NAME) || name;
       } else {
         logger.error('Failed to get Entity name. Empty response.');
       }

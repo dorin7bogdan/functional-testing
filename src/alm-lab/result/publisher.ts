@@ -1,7 +1,7 @@
 import IClient from '../sdk/interface/iClient.js';
 import GetRequest from '../sdk/request/getRequest.js';
 import GetRunEntityNameRequest from '../sdk/request/getRunEntityNameRequest.js';
-import Xml, { EntityMap } from '../sdk/util/xml.js';
+import JsonParser, { EntityMap } from '../sdk/util/jsonParser.js';
 import TestSuites from './testSuites.js';
 import JUnitParser from './jUnitParser.js';
 import Logger from '../../utils/logger.js';
@@ -14,9 +14,12 @@ export default abstract class Publisher {
     protected readonly entityId: number,
     protected readonly runId: number,
     protected readonly nameSuffix: string
-  ) {}
+  ) {
+    logger.debug(`ctor: entityId=${entityId}, runId=${runId}, nameSuffix=${nameSuffix}`);
+  }
 
   public async publish(url: string, domain: string, project: string): Promise<TestSuites | null> {
+    logger.debug(`publish: ...`);
     const testSetRunsRequest = this.getRunEntityTestSetRunsRequest(this.client, this.runId);
     const response = await testSetRunsRequest.execute();
     const testInstanceRuns = this.getTestInstanceRun(response.data);
@@ -36,14 +39,14 @@ export default abstract class Publisher {
   protected getTestInstanceRun(responseData?: string): EntityMap[] {
     try {
       if (responseData?.trim()) {
-        const entities = Xml.toEntities(responseData);
+        const entities = JsonParser.toEntities(responseData);
         if (entities.length > 0) {
           return entities;
         }
       }
-      logger.info('Parse TestInstanceRuns from response XML got no result.');
+      logger.info('Parse TestInstanceRuns from response JSON got no result.');
     } catch (error: any) {
-      logger.error(`Failed to parse TestInstanceRuns response XML. Exception: ${error?.message ?? error}`);
+      logger.error(`Failed to parse TestInstanceRuns response JSON. Exception: ${error?.message ?? error}`);
     }
     return [];
   }
