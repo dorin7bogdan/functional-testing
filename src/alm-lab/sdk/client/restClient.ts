@@ -9,6 +9,8 @@ import Logger from '../../../utils/logger.js';
 const logger = new Logger('RestClient');
 const SET_COOKIE = 'set-cookie';
 const XSRF_TOKEN = 'XSRF-TOKEN';
+const JSESSIONID = 'JSESSIONID';
+const LOGOUT_ENDPOINT = '/authentication-point/logout';
 
 const appendSuffix = (base: string, suffix: string): string => {
   const normalizedBase = base.replace(/[\\/]+$/, '');
@@ -28,9 +30,9 @@ const headersToObject = (headers: Headers): WebHeaders => {
   return values;
 };
 
-const sanitizeHeadersForLog = (headers: Headers): Record<string, string | string[]> => {
+const sanitizeHeaders4Log = (headers: Headers): Record<string, string | string[]> => {
   const safeHeaders: Record<string, string | string[]> = {};
-  const maskedHeaderNames = new Set(['ptal', 'pval', 'x-xsrf-token']);
+  const maskedHeaderKeys = new Set(['ptal', 'pval', 'x-xsrf-token']);
 
   headers.forEach((value, key) => {
     const normalizedKey = key.toLowerCase();
@@ -44,7 +46,7 @@ const sanitizeHeadersForLog = (headers: Headers): Record<string, string | string
       return;
     }
 
-    if (maskedHeaderNames.has(normalizedKey)) {
+    if (maskedHeaderKeys.has(normalizedKey)) {
       safeHeaders[key] = '***';
       return;
     }
@@ -92,13 +94,13 @@ export default class RestClient implements IClient {
         url += `?${query}`;
       }
       logger.debug(`GET ${url}`);
-      if (url.endsWith('/authentication-point/logout')) {
-        this.cookies.delete('XSRF-TOKEN');
-        this.cookies.delete('JSESSIONID');
+      if (url.endsWith(LOGOUT_ENDPOINT)) {
+        this.cookies.delete(XSRF_TOKEN);
+        this.cookies.delete(JSESSIONID);
       }
 
       const hdrs = this.decorateRequestHeaders(headers, resxAccessLevel);
-      logger.debug(`HEADERS: ${JSON.stringify(sanitizeHeadersForLog(hdrs))}`);
+      logger.debug(`HEADERS: ${JSON.stringify(sanitizeHeaders4Log(hdrs))}`);
       const response = await fetch(url, {
         method: 'GET',
         headers: hdrs
@@ -126,7 +128,7 @@ export default class RestClient implements IClient {
       logger.debug(`POST ${url}`);
       (!headers) && (headers = { Accept: Constants.APP_JSON, 'Content-Type': Constants.APP_JSON });
       const hdrs = this.decorateRequestHeaders(headers, resxAccessLevel);
-      logger.debug(`HEADERS: ${JSON.stringify(sanitizeHeadersForLog(hdrs))}`);
+      logger.debug(`HEADERS: ${JSON.stringify(sanitizeHeaders4Log(hdrs))}`);
       logger.debug(`BODY: ${body}`);
       const response = await fetch(url, {
         method: 'POST',

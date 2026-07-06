@@ -137114,6 +137114,8 @@ const resxAccessHeaderName = (level) => {
 const restClient_logger = new Logger('RestClient');
 const SET_COOKIE = 'set-cookie';
 const XSRF_TOKEN = 'XSRF-TOKEN';
+const JSESSIONID = 'JSESSIONID';
+const LOGOUT_ENDPOINT = '/authentication-point/logout';
 const appendSuffix = (base, suffix) => {
     const normalizedBase = base.replace(/[\\/]+$/, '');
     const normalizedSuffix = suffix.replace(/^[\\/]+/, '');
@@ -137129,9 +137131,9 @@ const headersToObject = (headers) => {
     });
     return values;
 };
-const sanitizeHeadersForLog = (headers) => {
+const sanitizeHeaders4Log = (headers) => {
     const safeHeaders = {};
-    const maskedHeaderNames = new Set(['ptal', 'pval', 'x-xsrf-token']);
+    const maskedHeaderKeys = new Set(['ptal', 'pval', 'x-xsrf-token']);
     headers.forEach((value, key) => {
         const normalizedKey = key.toLowerCase();
         if (normalizedKey === 'cookie') {
@@ -137143,7 +137145,7 @@ const sanitizeHeadersForLog = (headers) => {
                 .filter(Boolean);
             return;
         }
-        if (maskedHeaderNames.has(normalizedKey)) {
+        if (maskedHeaderKeys.has(normalizedKey)) {
             safeHeaders[key] = '***';
             return;
         }
@@ -137184,12 +137186,12 @@ class RestClient {
                 url += `?${query}`;
             }
             restClient_logger.debug(`GET ${url}`);
-            if (url.endsWith('/authentication-point/logout')) {
-                this.cookies.delete('XSRF-TOKEN');
-                this.cookies.delete('JSESSIONID');
+            if (url.endsWith(LOGOUT_ENDPOINT)) {
+                this.cookies.delete(XSRF_TOKEN);
+                this.cookies.delete(JSESSIONID);
             }
             const hdrs = this.decorateRequestHeaders(headers, resxAccessLevel);
-            restClient_logger.debug(`HEADERS: ${JSON.stringify(sanitizeHeadersForLog(hdrs))}`);
+            restClient_logger.debug(`HEADERS: ${JSON.stringify(sanitizeHeaders4Log(hdrs))}`);
             const response = await fetch(url, {
                 method: 'GET',
                 headers: hdrs
@@ -137214,7 +137216,7 @@ class RestClient {
             restClient_logger.debug(`POST ${url}`);
             (!headers) && (headers = { Accept: constants_Constants.APP_JSON, 'Content-Type': constants_Constants.APP_JSON });
             const hdrs = this.decorateRequestHeaders(headers, resxAccessLevel);
-            restClient_logger.debug(`HEADERS: ${JSON.stringify(sanitizeHeadersForLog(hdrs))}`);
+            restClient_logger.debug(`HEADERS: ${JSON.stringify(sanitizeHeaders4Log(hdrs))}`);
             restClient_logger.debug(`BODY: ${body}`);
             const response = await fetch(url, {
                 method: 'POST',
@@ -138261,7 +138263,7 @@ class ApiKeyAuthenticator {
 const USERNAME = 'Username';
 const IS_AUTH_ENDPOINT = 'rest/is-authenticated';
 const AUTH_ENDPOINT = 'authentication-point/authenticate';
-const LOGOUT_ENDPOINT = 'authentication-point/logout';
+const restAuthenticator_LOGOUT_ENDPOINT = 'authentication-point/logout';
 const SESSION_ENDPOINT = 'rest/site-session';
 const LOGGED_OUT_SUCCESSFULLY = 'Logged Out Successfully.';
 const CHECK_IF_AUTHENTICATED = 'Check if is authenticated ...';
@@ -138303,7 +138305,7 @@ class RestAuthenticator {
     async logout(client) {
         let isLoggedOut = false;
         if (client) {
-            const response = await client.httpGet(restAuthenticator_appendSuffix(client.serverUrl, LOGOUT_ENDPOINT));
+            const response = await client.httpGet(restAuthenticator_appendSuffix(client.serverUrl, restAuthenticator_LOGOUT_ENDPOINT));
             isLoggedOut = response.isOK;
             if (isLoggedOut) {
                 restAuthenticator_logger.info(LOGGED_OUT_SUCCESSFULLY);
