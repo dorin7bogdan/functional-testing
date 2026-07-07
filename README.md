@@ -21,14 +21,14 @@ Using this action, development and QA teams can:
 
 # 2. Table of Contents
 
-1. Introduction
-2. Table of Contents
-3. Requirements
-4. GitHub Workflow Setup
-   - 4.1 Workflow Creation
-   - 4.2 Full YAML Examples
-   - 4.3 Workflow Parameters
-   - 4.4 Debugging
+[1. Introduction](#1-introduction)
+[2. Table of Contents](#2-table-of-contents)
+[3. Requirements](#3-requirements)
+[4. GitHub Workflow Setup](#4-github-workflow-setup)
+   - [4.1 Workflow Creation](#41-workflow-creation)
+   - [4.2 Full YAML Examples](#42-full-yaml-examples)
+   - [4.3 Workflow Parameters](#43-workflow-parameters)
+   - [4.4 Debugging](#44-debugging)
 [5. Running FT Tests](#5-running-ft-tests)
   - [5.1. GitHub self-hosted runner](#51-gitHub-self-hosted-runner)
   - [5.2. Run the Workflow](#52-run-the-workflow)
@@ -156,22 +156,17 @@ permissions:
   actions: read
   contents: read
 
-env:
-  NODE_TLS_REJECT_UNAUTHORIZED: 0
-
 jobs:
   ft_integration_job:
     runs-on: [self-hosted]
 
     steps:
       - name: FT Integration
-        uses: dorin7bogdan/functional-testing@main
+        uses: opentext/functional-testing@v26.3.0
         id: ft-integration
         with:
           testPaths: ${{ inputs.testPaths }}
           githubToken: ${{ secrets.GITHUB_TOKEN }}
-          archiveReportsAsSingleArtifact: false
-          cleanupTestRunFiles: false
 ```
 
 ### ALM Test Set Execution
@@ -201,17 +196,15 @@ jobs:
 
     steps:
       - name: FT Integration ALM
-        uses: dorin7bogdan/functional-testing@main
+        uses: opentext/functional-testing@v26.3.0
         id: ft-integration-alm
         with:
           runType: alm
 
           almTestSets: ${{ inputs.testSets }}
-
           almServerUrl: http://<alm-server>:8080/qcbin
           almUsername: ${{ secrets.ALM_USERNAME }}
           almPassword: ${{ secrets.ALM_PASSWORD }}
-
           almDomain: AUTOMATION
           almProject: CI_Integration
 ```
@@ -236,7 +229,6 @@ permissions:
 
 env:
   NODE_TLS_REJECT_UNAUTHORIZED: 0
-  ACTIONS_STEP_DEBUG: true
 
 jobs:
   ft_integration_alm_lab:
@@ -244,17 +236,14 @@ jobs:
 
     steps:
       - name: FT Integration ALM Lab Management
-        uses: dorin7bogdan/functional-testing@main
+        uses: opentext/functional-testing@v26.3.0
         id: ft-integration-alm-lab
         with:
           runType: alm-lab
-
           almTestSetId: ${{ inputs.testSetId }}
-
           almServerUrl: http://<alm-server>:8080/qcbin
           almUsername: ${{ secrets.ALM_USERNAME }}
           almPassword: ${{ secrets.ALM_PASSWORD }}
-
           almDomain: AUTOMATION
           almProject: CI_Integration
 ```
