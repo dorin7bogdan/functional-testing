@@ -21,18 +21,19 @@ Using this action, development and QA teams can:
 
 # 2. Table of Contents
 
-[1. Introduction](#1-introduction)
-[2. Table of Contents](#2-table-of-contents)
-[3. Requirements](#3-requirements)
-[4. GitHub Workflow Setup](#4-github-workflow-setup)
+- [1. Introduction](#1-introduction)
+- [2. Table of Contents](#2-table-of-contents)
+- [3. Requirements](#3-requirements)
+- [4. GitHub Workflow Setup](#4-github-workflow-setup)
    - [4.1 Workflow Creation](#41-workflow-creation)
    - [4.2 Full YAML Examples](#42-full-yaml-examples)
    - [4.3 Workflow Parameters](#43-workflow-parameters)
    - [4.4 Debugging](#44-debugging)
-[5. Running FT Tests](#5-running-ft-tests)
-  - [5.1. GitHub self-hosted runner](#51-gitHub-self-hosted-runner)
+   - [4.5 Outputs](#45-outputs)
+- [5. Running FT Tests](#5-running-ft-tests)
+  - [5.1. GitHub self-hosted runner](#51-github-self-hosted-runner)
   - [5.2. Run the Workflow](#52-run-the-workflow)
-[6. Limitations](#6-limitations)
+- [6. Limitations](#6-limitations)
 
 
 # 3. Requirements
@@ -131,7 +132,7 @@ The workflow should run on a self-hosted runner where OpenText Functional Testin
 ```yaml
 jobs:
   ft_integration_job:
-    runs-on: [self-hosted]
+    runs-on: [self-hosted, windows]
 ```
 
 ---
@@ -158,13 +159,14 @@ permissions:
 
 jobs:
   ft_integration_job:
-    runs-on: [self-hosted]
+    runs-on: [self-hosted, windows]
 
     steps:
       - name: FT Integration
         uses: opentext/functional-testing@v26.3.0
         id: ft-integration
         with:
+          runType: filesystem
           testPaths: ${{ inputs.testPaths }}
           githubToken: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -192,7 +194,7 @@ env:
 
 jobs:
   ft_integration_alm:
-    runs-on: [self-hosted]
+    runs-on: [self-hosted, windows]
 
     steps:
       - name: FT Integration ALM
@@ -200,7 +202,6 @@ jobs:
         id: ft-integration-alm
         with:
           runType: alm
-
           almTestSets: ${{ inputs.testSets }}
           almServerUrl: http://<alm-server>:8080/qcbin
           almUsername: ${{ secrets.ALM_USERNAME }}
@@ -232,7 +233,7 @@ env:
 
 jobs:
   ft_integration_alm_lab:
-    runs-on: [self-hosted]
+    runs-on: [self-hosted, windows]
 
     steps:
       - name: FT Integration ALM Lab Management
@@ -247,38 +248,94 @@ jobs:
           almDomain: AUTOMATION
           almProject: CI_Integration
 ```
-
 ---
 
 ## 4.3 Workflow Parameters
 
-### File System Parameters
+The source of truth for parameters is [`action.yml`](./action.yml). The following tables mirror it.
 
-| Parameter | Required | Description |
-|------------|----------|-------------|
-| `testPaths` | Yes | Relative path to a test folder, individual test, or MTBX file. |
-| `githubToken` | Yes | GitHub token used by the action. |
-| `timeout` | No | Execution timeout in seconds. |
-| `cancelRunOnFailure` | No | Stop execution after first failure. |
-| `archiveReportsAsSingleArtifact` | No | Upload all reports as a single artifact. |
-| `resultTestNameOnly` | No | Store test names instead of full paths in generated results. |
-| `resultUnifiedTestClassname` | No | Generate consistent JUnit classname values. |
-| `ftlUrl` | No | URL to FTToolsLauncher executable. |
-| `logLevel` | No | Logging level from 1 (Trace) to 5 (Error). |
-| `cleanupTestRunFiles` | No | Delete temporary execution files after completion. |
-| `failIfNotPassed` | No | Fail the workflow when the run status is not Passed. |
+### Global parameters
 
-### ALM Parameters
+| Parameter | Required | Default | Description |
+|------------|----------|---------|-------------|
+| `runType` | No | `filesystem` | Type of run: `filesystem`, `alm`, `alm-lab`. |
 
-| Parameter | Required | Description |
-|------------|----------|-------------|
-| `almServerUrl` | Yes | ALM server URL. |
-| `almUsername` | Yes* | ALM username. |
-| `almPassword` | Yes* | ALM password. |
-| `almDomain` | Yes | ALM domain. |
-| `almProject` | Yes | ALM project. |
-| `almTestSets` | Yes | ALM test set path or folder. |
-| `almRunMode` | No | LOCAL, REMOTE, or PLANNED_HOST. |
+### File system parameters (`runType: filesystem`)
+
+| Parameter | Required | Default | Description |
+|------------|----------|---------|-------------|
+| `testPaths` | Yes (for `filesystem`) | - | Relative test folder/test/`.mtbx` path, or JSON array of paths. Absolute paths are not allowed. |
+| `timeout` | No | `""` | Timeout in seconds. |
+| `cancelRunOnFailure` | No | `false` | Cancel run on first failure. |
+| `githubToken` | Yes | - | GitHub token/PAT. |
+
+### ALM connection parameters (`runType: alm` and `runType: alm-lab`)
+
+| Parameter | Required | Default | Description |
+|------------|----------|---------|-------------|
+| `almServerUrl` | Yes | - | ALM URL in the form `http(s)://host[:port]/qcbin`. |
+| `almSSOEnabled` | No | `false` | Use SSO login mode. |
+| `almUsername` | Yes/No | - | Required when `almSSOEnabled: false`. |
+| `almPassword` | Yes/No | - | Required when `almSSOEnabled: false`. |
+| `almClientId` | Yes/No | - | Required when `almSSOEnabled: true`. |
+| `almApiKeySecret` | Yes/No | - | Required when `almSSOEnabled: true`. |
+| `almDomain` | Yes | - | ALM domain. |
+| `almProject` | Yes | - | ALM project. |
+
+### Classic ALM run parameters (`runType: alm`)
+
+| Parameter | Required | Default | Description |
+|------------|----------|---------|-------------|
+| `almTestSets` | Yes (for `alm`) | - | Test set/folder path, or JSON array of paths. |
+| `almTimeout` | No | `-1` | Timeout in seconds (`-1` = no timeout). |
+| `almTestSetsOrderByCriteria` | No | `name` | Sort order for test set execution: `id` or `name`. |
+| `almRunMode` | No | `LOCAL` | `LOCAL`, `REMOTE`, or `PLANNED_HOST`. |
+| `almRunHost` | Yes/No | - | Required when `almRunMode: REMOTE`. |
+
+### ALM Lab Management run parameters (`runType: alm-lab`)
+
+| Parameter | Required | Default | Description |
+|------------|----------|---------|-------------|
+| `almTestSetId` | Yes** | - | Functional Test Set ID. |
+| `almBvsId` | Yes** | - | BVS ID. |
+| `almTimeslotDuration` | No | `30` | Lab timeslot duration in minutes (minimum 30). |
+| `almEnvConfigId` | No | `0` | Environment configuration ID. |
+
+**For `alm-lab`, provide either `almTestSetId` or `almBvsId`.**
+
+### Common execution/result parameters
+
+| Parameter | Required | Default | Description |
+|------------|----------|---------|-------------|
+| `resultTestNameOnly` | No | `true` | Output only test names in results summary (`runType: filesystem | alm`). |
+| `resultUnifiedTestClassname` | No | `false` | Use consistent JUnit classname format (`runType: filesystem | alm`). |
+| `ftlUrl` | No | `https://github.com/MicroFocus/ADM-FT-ToolsLauncher/releases/download/v25.2.0/FTToolsLauncher_net48.exe` | FTToolsLauncher URL (`runType: filesystem | alm`). |
+| `archiveReportsAsSingleArtifact` | No | `false` | Upload reports as one artifact instead of per test. |
+| `logLevel` | No | `3` | Logging level `1-5` (`1=trace ... 5=error`). |
+| `cleanupTestRunFiles` | No | `true` | Delete test run files after execution. |
+| `failIfNotPassed` | No | `true` | Fail workflow step if final status is not `Passed`. |
+
+## 4.4 Debugging
+
+- Set `logLevel: "1"` or `logLevel: "2"` for more verbose logs.
+- Set `cleanupTestRunFiles: "false"` when troubleshooting so run files remain on the runner.
+- If using self-signed ALM certificates, use:
+
+```yaml
+env:
+  NODE_TLS_REJECT_UNAUTHORIZED: 0
+```
+
+Use this only when required by your environment.
+
+## 4.5 Outputs
+
+The action exposes:
+
+| Output | Description |
+|--------|-------------|
+| `exitCode` | FT process exit code |
+| `status` | FT final status: `Passed`, `Failed`, `Unstable`, `Aborted`, or `Unknown` |
 
 ## 5. Running FT Tests
 
@@ -295,11 +352,10 @@ jobs:
 
 ### 5.2. Run the Workflow
 
-- After completing the configuration, run your workflow, manually, from GitHub **Actions** tab.
-- The progess can be checked during the execution.
+- After completing configuration, run the workflow manually from the GitHub **Actions** tab.
+- Monitor progress in real time in the workflow logs.
 
 ## 6. Limitations
 
 1. One self-hosted GitHub runner is required to execute the integration workflow.
 2. Multiple YML workflows/actions can be created/used per GitHub repository, but it's recommended to use the same branch for all FT actions. An attempt to use a second branch can lead to unexpected results / errors.
-

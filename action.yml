@@ -35,40 +35,29 @@ inputs:
     description: 'The URL of the ALM server. Format: http(s)://{hostname-or-ip}[:{port}]/qcbin 
                   Example: http://10.105.32.108:8080/qcbin'
     required: false
+  almSSOEnabled:
+    description: 'true | false => whether to use the SSO authentication mode when login to the ALM server. 
+                  Requires almClientId and almApiKeySecret'
+    required: false
+    default: "false"
   almUsername:
-    description: 'The user name to use for the ALM connection'
+    description: 'The user name to use for the ALM connection. Required if almSSOEnabled is false'
     required: false
   almPassword:
-    description: 'The password to use for the ALM connection'
+    description: 'The password to use for the ALM connection. Required if almSSOEnabled is false'
     required: false
+  almClientId:
+    description: 'The client ID used for login. Required if almSSOEnabled is true'
+    required: false # required if almSSOEnabled is true
+  almApiKeySecret:
+    description: 'The API key secret used for login. Required if almSSOEnabled is true'
+    required: false # required if almSSOEnabled is true
   almDomain:
     description: 'The ALM domain name which the ALM projects can be found in'
     required: false
   almProject:
     description: 'The ALM project to open under the specified ALM domain'
     required: false
-  almSSOEnabled:
-    description: 'true | false => whether to use the SSO authentication mode when login to the ALM server. 
-                  Requires almClientId and almApiKeySecret'
-    required: false
-    default: "false"
-  almClientId:
-    description: 'The client ID used for login'
-    required: false # required if almSSOEnabled is true
-  almApiKeySecret:
-    description: 'The API key secret used for login'
-    required: false # required if almSSOEnabled is true
-  almRunMode:
-    description: '
-      "LOCAL"        => the ALM tests run on the local machine (self-hosted runner).
-      "REMOTE"       => the ALM tests run on a the machine specified in the almRunHost parameter.
-      "PLANNED_HOST" => the ALM tests run on the machines configured in the ALM test set. Only test sets of type "Default" are supported.'
-    required: false
-    default: "LOCAL"
-  almRunHost:
-    description: 'The hostname or IP address of the machine which to run the ALM tests on.
-                  Only used if almRunMode is "REMOTE".'
-    required: false # required if almRunMode is "REMOTE".
 
 # This section defines regular ALM specific configuration inputs
   almTestSets:
@@ -86,6 +75,17 @@ inputs:
                   Only used when runType is "ALM".'
     required: false
     default: "name"
+  almRunMode:
+    description: '
+      "LOCAL"        => the ALM tests run on the local machine (self-hosted runner).
+      "REMOTE"       => the ALM tests run on a the machine specified in the almRunHost parameter.
+      "PLANNED_HOST" => the ALM tests run on the machines configured in the ALM test set. Only test sets of type "Default" are supported.'
+    required: false
+    default: "LOCAL"
+  almRunHost:
+    description: 'The hostname or IP address of the machine which to run the ALM tests on.
+                  Only used if almRunMode is "REMOTE".'
+    required: false # required if almRunMode is "REMOTE".
 
 # This section defines ALM Lab Management specific configuration inputs
   almTestSetId:
