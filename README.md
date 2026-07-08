@@ -14,8 +14,7 @@ Using this action, development and QA teams can:
 - Execute tests stored in source control repositories.
 - Run ALM-managed test sets and suites.
 - Publish and archive execution results as workflow artifacts.
-- Integrate quality gates into pull requests, builds, and release pipelines.
-- Support continuous testing throughout the software delivery lifecycle.
+- Can be integrated into pull requests, builds, and release pipelines when test targets are predefined in the workflow.
 
 ---
 
@@ -58,11 +57,13 @@ The action is primarily intended for:
 
 ### GitHub
 
-A GitHub Personal Access Token (PAT) or GitHub token must be provided:
+For File System executions (`runType: filesystem`), provide a GitHub token:
 
 ```yaml
 githubToken: ${{ secrets.GITHUB_TOKEN }}
 ```
+The built-in ${{ secrets.GITHUB_TOKEN }} is automatically available to GitHub Actions workflows, so creating a Personal Access Token (PAT) is typically not required.
+The GitHub token is used to clone the repository content.
 
 ### ALM Authentication
 
@@ -359,3 +360,5 @@ The action exposes:
 
 1. One self-hosted GitHub runner is required to execute the integration workflow.
 2. Multiple YML workflows/actions can be created/used per GitHub repository, but it's recommended to use the same branch for all FT actions. An attempt to use a second branch can lead to unexpected results / errors.
+3. When using `runType: filesystem`, only tests that are stored in the cloned GitHub repository can be executed. Tests located elsewhere on the runner machine are not supported. All `testPaths` values must reference files or folders within the repository and must be specified as paths relative to the repository root.
+4. When using `runType: alm` or `runType: alm-lab`, tests are executed directly from OpenText ALM / ALM Lab Management. Repository test assets are not cloned, accessed, or used as part of the test execution. The GitHub repository is only used to host and run the workflow definition.
