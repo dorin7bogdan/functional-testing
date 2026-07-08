@@ -26,6 +26,7 @@ Using this action, development and QA teams can:
 - [4. GitHub Workflow Setup](#4-github-workflow-setup)
    - [4.1 Workflow Creation](#41-workflow-creation)
    - [4.2 Full YAML Examples](#42-full-yaml-examples)
+    - [4.2.1 MTBX File Usage (`runType: filesystem`)](#421-mtbx-file-usage-runtype-filesystem)
    - [4.3 Workflow Parameters](#43-workflow-parameters)
    - [4.4 Debugging](#44-debugging)
    - [4.5 Outputs](#45-outputs)
@@ -251,6 +252,39 @@ jobs:
 ```
 ---
 
+### 4.2.1 MTBX File Usage (`runType: filesystem`)
+
+If you want to run tests using an MTBX file, create a `.mtbx` file and save it in your current repository, then pass its relative path in `testPaths`.
+
+Example workflow input:
+
+```yaml
+with:
+  runType: filesystem
+  testPaths: path\to\tests.mtbx
+  githubToken: ${{ secrets.GITHUB_TOKEN }}
+```
+
+Sample MTBX file:
+
+```xml
+<Mtbx>
+    <Test name="Pass" path="uft-one-tests\Quicks\QuickPass"></Test>
+    <Test name="Warn" path="uft-one-tests\Quicks\QuickWarn"></Test>
+    <Test name="Fail" path="uft-one-tests\Quicks\QuickFail"></Test>
+    <Test name="Error" path="uft-one-tests\Quicks\QuickError"></Test>
+</Mtbx>
+```
+
+Notes:
+
+- The MTBX file must be stored in the same GitHub repository where the workflow runs.
+- Each `path` value inside the MTBX file must be relative to the organization/user root.
+- In the sample above, `uft-one-tests` is the repository name (for example: `https://github.com/MicroFocus/uft-one-tests`), so test paths start with `uft-one-tests\...`.
+- Standard MTBX reference: https://github.com/MicroFocus/ADM-FT-ToolsLauncher#mtbx-file-refs
+
+---
+
 ## 4.3 Workflow Parameters
 
 The source of truth for parameters is [`action.yml`](./action.yml). The following tables mirror it.
@@ -265,7 +299,7 @@ The source of truth for parameters is [`action.yml`](./action.yml). The followin
 
 | Parameter | Required | Default | Description |
 |------------|----------|---------|-------------|
-| `testPaths` | Yes (for `filesystem`) | - | Relative test folder/test/`.mtbx` path, or JSON array of paths. Absolute paths are not allowed. |
+| `testPaths` | Yes (for `filesystem`) | - | Relative test folder\test\`.mtbx` path, or JSON array of paths. Absolute paths are not allowed. |
 | `timeout` | No | `""` | Timeout in seconds. |
 | `cancelRunOnFailure` | No | `false` | Cancel run on first failure. |
 | `githubToken` | Yes | - | GitHub token/PAT. |
