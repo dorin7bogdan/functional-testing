@@ -7,7 +7,7 @@ inputs:
     default: "filesystem"
 # This section defines FileSystem-specific configuration inputs
   testPaths:
-    description: 'Relative path to a tests directory, to a specific test folder or to a MTBX file (i.e. "path\to\folder" or "path\to\GUITest1" or "path\to\yourfile.mtbx"). 
+    description: 'Relative path to a tests directory, to a specific test folder or to an MTBX file (i.e. "path\to\folder" or "path\to\GUITest1" or "path\to\yourfile.mtbx"). 
                 For multiple individual tests you can use an array of paths: ["path\\to\\GUITest1", "path\\to\\GUITest2", ...]. 
                 Any path must be relative to the repository root.
                 IMPORTANT: Absolute paths are not allowed.
@@ -83,7 +83,7 @@ inputs:
     required: false
     default: "LOCAL"
   almRunHost:
-    description: 'The hostname or IP address of the machine where to run the ALM tests.
+    description: 'The hostname or IP address of the machine on which to run the ALM tests.
                   Only used if almRunMode is "REMOTE".'
     required: false # required if almRunMode is "REMOTE".
 

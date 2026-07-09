@@ -1,4 +1,4 @@
-# 1. Introduction 🚀
+# 1. Introduction
 
 The **OpenText Functional Testing GitHub Action** enables GitHub repositories to execute OpenText Functional Testing (FT/UFT One) tests as part of GitHub Actions workflows. It provides a simple and flexible way to integrate automated functional testing into CI/CD pipelines.
 
@@ -14,7 +14,7 @@ Using this action, development and QA teams can:
 - Execute tests stored in source control repositories.
 - Run ALM-managed test sets and suites.
 - Publish and archive execution results as workflow artifacts.
-- Can be integrated into pull requests, builds, and release pipelines when test targets are predefined in the workflow.
+- Automatically trigger test runs following pull requests, builds, and release pipelines. In this case make sure the target tests are defined before the source event occurs.
 
 ---
 
