@@ -45,7 +45,10 @@ Before using this action, ensure the following prerequisites are met.
 - GitHub repository with GitHub Actions enabled.
 - OpenText Functional Testing (UFT One) installed on the execution machine.
 - Windows-based runner capable of executing FT tests.
-- Access to the FT test assets or ALM project resources to be executed.
+- For ALM testing the ALM Client Launcher is required to be installed on the self-hosted runner. 
+For more details please check https://admhelp.microfocus.com/alm/ALM_Client_Launcher/ALM_Client_Launcher_Guide.pdf.
+- For ALM Lab Management testing the Lab Service must be installed on the execution host. 
+For more details please check https://admhelp.microfocus.com/alm/en/26.1/online_help/Content/LM/menu_lab_service_agent.htm.
 
 ## Runner Requirements
 
@@ -342,9 +345,9 @@ The source of truth for parameters is [`action.yml`](./action.yml). The followin
 
 | Parameter | Required | Default | Description |
 |------------|----------|---------|-------------|
-| `resultTestNameOnly` | No | `true` | Output only test names in results summary (`runType: filesystem | alm`). |
-| `resultUnifiedTestClassname` | No | `false` | Use consistent JUnit classname format (`runType: filesystem | alm`). |
-| `ftlUrl` | No | `https://github.com/MicroFocus/ADM-FT-ToolsLauncher/releases/download/v25.2.0/FTToolsLauncher_net48.exe` | FTToolsLauncher URL (`runType: filesystem | alm`). |
+| `resultTestNameOnly` | No | `true` | Output only test names in results summary (`runType: filesystem \| alm`). |
+| `resultUnifiedTestClassname` | No | `false` | Use consistent JUnit classname format (`runType: filesystem \| alm`). |
+| `ftlUrl` | No | `https://github.com/MicroFocus/ADM-FT-ToolsLauncher/releases/download/v25.2.0/FTToolsLauncher_net48.exe` | FTToolsLauncher URL (`runType: filesystem \| alm`). |
 | `archiveReportsAsSingleArtifact` | No | `false` | Upload reports as one artifact instead of per test. |
 | `logLevel` | No | `3` | Logging level `1-5` (`1=trace ... 5=error`). |
 | `cleanupTestRunFiles` | No | `true` | Delete test run files after execution. |
