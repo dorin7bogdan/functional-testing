@@ -336,12 +336,12 @@ The source of truth for parameters is [`action.yml`](./action.yml). The followin
 
 | Parameter | Required | Default | Description |
 |------------|----------|---------|-------------|
-| `almTestSetId` | Yes** | - | Functional Test Set ID. |
-| `almBvsId` | Yes** | - | BVS ID. |
+| `almTestSetId` | Yes* | - | Functional Test Set ID. |
+| `almBvsId` | Yes* | - | BVS ID. |
 | `almTimeslotDuration` | No | `30` | Lab timeslot duration in minutes (minimum 30). |
 | `almEnvConfigId` | No | `0` | Environment configuration ID. |
 
-**For `alm-lab`, provide either `almTestSetId` or `almBvsId`.**
+**\* For `alm-lab`, provide either `almTestSetId` or `almBvsId`.**
 
 ### Common execution/result parameters
 
