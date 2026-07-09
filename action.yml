@@ -7,7 +7,7 @@ inputs:
     default: "filesystem"
 # This section defines FileSystem-specific configuration inputs
   testPaths:
-    description: 'Relative path to a tests directory or to a specific test folder (i.e. "path\to\folder" or "path\to\GUITest1" or "path\to\yourfile.mtbx"). 
+    description: 'Relative path to a tests directory, to a specific test folder or to a MTBX file (i.e. "path\to\folder" or "path\to\GUITest1" or "path\to\yourfile.mtbx"). 
                 For multiple individual tests you can use an array of paths: ["path\\to\\GUITest1", "path\\to\\GUITest2", ...]. 
                 Any path must be relative to the repository root.
                 IMPORTANT: Absolute paths are not allowed.
@@ -23,7 +23,7 @@ inputs:
     required: false
     default: ""
   cancelRunOnFailure:
-    description: 'true | false => whether to cancel the test run on first failure'
+    description: 'true | false => Indicates whether to cancel the test run on first failure'
     required: false
     default: "false"
   githubToken:
@@ -36,7 +36,7 @@ inputs:
                   Example: http://10.105.32.108:8080/qcbin'
     required: false
   almSSOEnabled:
-    description: 'true | false => whether to use the SSO authentication mode when login to the ALM server. 
+    description: 'true | false => Indicates whether to use the SSO authentication mode when login to the ALM server. 
                   Requires almClientId and almApiKeySecret'
     required: false
     default: "false"
@@ -53,7 +53,7 @@ inputs:
     description: 'The API key secret used for login. Required if almSSOEnabled is true'
     required: false # required if almSSOEnabled is true
   almDomain:
-    description: 'The ALM domain name which the ALM projects can be found in'
+    description: 'The ALM domain name where the ALM projects can be found'
     required: false
   almProject:
     description: 'The ALM project to open under the specified ALM domain'
@@ -72,7 +72,7 @@ inputs:
   almTestSetsOrderByCriteria:
     description: 'id | name => The criteria used to order the execution of test sets. 
                   Use "id" to sort by test set ID in ascending order, or "name" to sort alphabetically by test set name. 
-                  Only used when runType is "ALM".'
+                  Only used when runType is "alm".'
     required: false
     default: "name"
   almRunMode:
@@ -83,13 +83,13 @@ inputs:
     required: false
     default: "LOCAL"
   almRunHost:
-    description: 'The hostname or IP address of the machine which to run the ALM tests on.
+    description: 'The hostname or IP address of the machine where to run the ALM tests.
                   Only used if almRunMode is "REMOTE".'
     required: false # required if almRunMode is "REMOTE".
 
 # This section defines ALM Lab Management specific configuration inputs
   almTestSetId:
-    description: 'The ID of Functional Test Set to be run. 
+    description: 'The ID of the Functional Test Set to run. 
                   Either almTestSetId or almBvsId is required for runType "alm-lab"'
     required: false
   almBvsId:
@@ -101,7 +101,7 @@ inputs:
     required: false
     default: "30"
   almEnvConfigId:
-    description: 'The ID of the environment configuration to be used for the test run
+    description: 'The ID of the environment configuration to use for the test run
                   To find the ID of your environment configuration, right-click the entity, copy the URL, and paste it to a text editor. 
                   Use the number associated with the EntityID at the end of the URL'
     required: false
@@ -120,14 +120,14 @@ inputs:
   resultUnifiedTestClassname:
     description: 'For example, if the test path is: "C:\UFTTests\Level1\Level2\Level3\GUITest1" and this parameter is set to "true", the classname will be "file:///C:/UFTTests/Level1/Level2/Level3" (the absolute path of the closest parent folder). This result is consistent, whether you use an MTB / MTBX file or a folder path (with one or more tests stored at folder and/or subfolders level). 
                   If this parameter is set to "false", the classname can be: "All-Tests.Test group" if the properties file provides the full path to the test folder, or "All-Tests.<path to the mtb or mtbx file>" if the properties file provides a mtb / mtbx file path, or "All-Tests.C:\UFTTests\Level1" if the properties file provides a partial path (to the subfolder Level1).
-                  NOTE: This option is applicable to FileSystem and classic ALM only.'
+                  NOTE: This option is applicable to FileSystem and classic ALM run types only.'
     required: false
     default: "false"
   ftlUrl:
     description: 'The URL of OpenText FTToolsLauncher.exe.
-                  NOTE: This option is applicable to FileSystem and classic ALM only.'
+                  NOTE: This option is applicable to FileSystem and classic ALM run types only.'
     required: false
-    default: "https://github.com/MicroFocus/ADM-FT-ToolsLauncher/releases/download/v25.2.0/FTToolsLauncher_net48.exe"
+    default: "https://github.com/MicroFocus/ADM-FT-ToolsLauncher/releases/download/v26.3.0/FTToolsLauncher_net48.exe"
   archiveReportsAsSingleArtifact:
     description: 'If set to "true", all Functional Testing reports will be archived and uploaded as a single artifact. 
                   Otherwise, each test report will be archived and uploaded separately.'
@@ -138,12 +138,12 @@ inputs:
     required: false
     default: "3"
   cleanupTestRunFiles:
-    description: 'Whether to delete the test run files from the runner after the test run is completed. 
+    description: 'Indicates whether to delete the test run files from the runner after the test run is completed. 
                   Use for troubleshooting purposes only.'
     required: false
     default: "true"
   failIfNotPassed:
-    description: 'Whether to fail the workflow step when the FT run status is not Passed'
+    description: 'Indicates whether to fail the workflow step when the FT run status is not Passed'
     required: false
     default: "true"
 

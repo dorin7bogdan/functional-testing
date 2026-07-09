@@ -347,7 +347,7 @@ The source of truth for parameters is [`action.yml`](./action.yml). The followin
 |------------|----------|---------|-------------|
 | `resultTestNameOnly` | No | `true` | Output only test names in results summary (`runType: filesystem \| alm`). |
 | `resultUnifiedTestClassname` | No | `false` | Use consistent JUnit classname format (`runType: filesystem \| alm`). |
-| `ftlUrl` | No | `https://github.com/MicroFocus/ADM-FT-ToolsLauncher/releases/download/v25.2.0/FTToolsLauncher_net48.exe` | FTToolsLauncher URL (`runType: filesystem \| alm`). |
+| `ftlUrl` | No | `https://github.com/MicroFocus/ADM-FT-ToolsLauncher/releases/download/v26.3.0/FTToolsLauncher_net48.exe` | FTToolsLauncher URL (`runType: filesystem \| alm`). |
 | `archiveReportsAsSingleArtifact` | No | `false` | Upload reports as one artifact instead of per test. |
 | `logLevel` | No | `3` | Logging level `1-5` (`1=trace ... 5=error`). |
 | `cleanupTestRunFiles` | No | `true` | Delete test run files after execution. |
@@ -399,3 +399,5 @@ The action exposes:
 2. Multiple YML workflows/actions can be created/used per GitHub repository, but it's recommended to use the same branch for all FT actions. An attempt to use a second branch can lead to unexpected results / errors.
 3. When using `runType: filesystem`, only tests that are stored in the cloned GitHub repository can be executed. Tests located elsewhere on the runner machine are not supported. All `testPaths` values must reference files or folders within the repository and must be specified as paths relative to the repository root.
 4. When using `runType: alm` or `runType: alm-lab`, tests are executed directly from OpenText ALM / ALM Lab Management. Repository test assets are not cloned, accessed, or used as part of the test execution. The GitHub repository is only used to host and run the workflow definition.
+5. Running Functional Testing Lab (formerly Digital Lab) tests is not supported right now
+6. Running Parallel tests is not supported right now

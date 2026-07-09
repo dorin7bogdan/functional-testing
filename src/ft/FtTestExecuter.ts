@@ -75,6 +75,7 @@ export default class FtTestExecuter {
     const props: { [key: string]: string } = {
       runType: FTL.FileSystem,
       resultsFilename: xmlResFileName,
+      fsTimeout: `${config.timeout}`,
       cancelRunOnFailure: `${config.cancelRunOnFailure}`,
       resultTestNameOnly: `${config.resultTestNameOnly}`,
       resultUnifiedTestClassname: `${config.resultUnifiedTestClassname}`
