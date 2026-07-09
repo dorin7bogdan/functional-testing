@@ -50,7 +50,7 @@ Before using this action, ensure the following prerequisites are met.
 https://admhelp.microfocus.com/alm/en/latest/online_help/Content/ALM_Client_launcher/ALM_Client_launcher.htm. 
     - About how to register the client components please check https://admhelp.microfocus.com/alm/ALM_Client_Launcher/ALM_Client_Launcher_Guide.pdf.
 - For ALM Lab Management testing the Lab Service must be installed on the execution host. 
-For more details please check https://admhelp.microfocus.com/alm/en/latest/online_help/Content/LM/menu_lab_service_agent.htm.
+    - For more details please check https://admhelp.microfocus.com/alm/en/latest/online_help/Content/LM/menu_lab_service_agent.htm.
 
 ## Runner Requirements
 
