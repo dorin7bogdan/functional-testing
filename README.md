@@ -68,7 +68,7 @@ For File System executions (`runType: filesystem`), provide a GitHub token:
 ```yaml
 githubToken: ${{ secrets.GITHUB_TOKEN }}
 ```
-The built-in ${{ secrets.GITHUB_TOKEN }} is automatically available to GitHub Actions workflows, so creating a Personal Access Token (PAT) is typically not required.
+The built-in `${{ secrets.GITHUB_TOKEN }}` is automatically available to GitHub Actions workflows, so creating a Personal Access Token (PAT) is typically not required.
 The GitHub token is used to clone the repository content.
 
 For File System and ALM executions (`runType: filesystem` and `runType: alm`), the action downloads and uses `FTToolsLauncher.exe` to intermediate the execution of the tests from the generated parameter file. If `FTToolsLauncher.exe` is not already present in the runner workspace, it is downloaded automatically from the official Micro Focus release link by default:
@@ -348,7 +348,7 @@ The source of truth for parameters is [`action.yml`](./action.yml). The followin
 |------------|----------|---------|-------------|
 | `resultTestNameOnly` | No | `true` | Output only test names in results summary (`runType: filesystem \| alm`). |
 | `resultUnifiedTestClassname` | No | `false` | Use consistent JUnit classname format (`runType: filesystem \| alm`). |
-| `ftlUrl` | No | `https://github.com/MicroFocus/ADM-FT-ToolsLauncher/releases/download/v26.3.0/FTToolsLauncher_net48.exe` | Official Micro Focus URL used to download `FTToolsLauncher.exe` when it is not already present on the runner (`runType: filesystem \| alm`). |
+| `ftlUrl` | No | [Micro Focus v26.3.0 release](https://github.com/MicroFocus/ADM-FT-ToolsLauncher/releases/download/v26.3.0/FTToolsLauncher_net48.exe) | Download URL for `FTToolsLauncher.exe` when it is not already present on the runner (`runType: filesystem \| alm`). |
 | `archiveReportsAsSingleArtifact` | No | `false` | Upload reports as one artifact instead of per test. |
 | `logLevel` | No | `3` | Logging level `1-5` (`1=trace ... 5=error`). |
 | `cleanupTestRunFiles` | No | `true` | Delete test run files after execution. |
