@@ -71,6 +71,10 @@ githubToken: ${{ secrets.GITHUB_TOKEN }}
 The built-in ${{ secrets.GITHUB_TOKEN }} is automatically available to GitHub Actions workflows, so creating a Personal Access Token (PAT) is typically not required.
 The GitHub token is used to clone the repository content.
 
+For File System and ALM executions (`runType: filesystem` and `runType: alm`), the action downloads and uses `FTToolsLauncher.exe` to intermediate the execution of the tests from the generated parameter file. If `FTToolsLauncher.exe` is not already present in the runner workspace, it is downloaded automatically from the official Micro Focus release link by default:
+
+https://github.com/MicroFocus/ADM-FT-ToolsLauncher/releases/download/v26.3.0/FTToolsLauncher_net48.exe
+
 ### ALM Authentication
 
 For ALM and ALM Lab executions, valid ALM credentials are required:
@@ -150,6 +154,8 @@ jobs:
 
 Run Functional Testing tests stored in the GitHub repository.
 
+The action downloads and uses `FTToolsLauncher.exe` on the runner to execute File System test runs.
+
 ```yaml
 name: FT-integration
 
@@ -161,7 +167,6 @@ on:
         required: true
 
 permissions:
-  actions: read
   contents: read
 
 jobs:
@@ -182,6 +187,8 @@ jobs:
 
 Run tests managed in OpenText ALM.
 
+The action downloads and uses `FTToolsLauncher.exe` on the runner to execute ALM test set runs.
+
 ```yaml
 name: FT-integration-ALM
 
@@ -192,12 +199,8 @@ on:
         description: 'Test set(s)'
         required: true
 
-permissions:
-  actions: read
-  contents: read
-
 env:
-  NODE_TLS_REJECT_UNAUTHORIZED: 0
+  NODE_TLS_REJECT_UNAUTHORIZED: 0   # only if the almServerUrl uses HTTP or a self-signed ALM certificate
 
 jobs:
   ft_integration_alm:
@@ -231,12 +234,8 @@ on:
         description: 'Test Set ID'
         required: true
 
-permissions:
-  actions: read
-  contents: read
-
 env:
-  NODE_TLS_REJECT_UNAUTHORIZED: 0
+  NODE_TLS_REJECT_UNAUTHORIZED: 0   # only if the almServerUrl uses HTTP or a self-signed ALM certificate
 
 jobs:
   ft_integration_alm_lab:
@@ -304,7 +303,7 @@ The source of truth for parameters is [`action.yml`](./action.yml). The followin
 
 | Parameter | Required | Default | Description |
 |------------|----------|---------|-------------|
-| `testPaths` | Yes (for `filesystem`) | - | Relative test folder\test\`.mtbx` path, or JSON array of paths. Absolute paths are not allowed. |
+| `testPaths` | Yes | - | Relative test folder\test\`.mtbx` path, or JSON array of paths. Absolute paths are not allowed. |
 | `timeout` | No | `""` | Timeout in seconds. |
 | `cancelRunOnFailure` | No | `false` | Cancel run on first failure. |
 | `githubToken` | Yes | - | GitHub token/PAT. |
@@ -349,7 +348,7 @@ The source of truth for parameters is [`action.yml`](./action.yml). The followin
 |------------|----------|---------|-------------|
 | `resultTestNameOnly` | No | `true` | Output only test names in results summary (`runType: filesystem \| alm`). |
 | `resultUnifiedTestClassname` | No | `false` | Use consistent JUnit classname format (`runType: filesystem \| alm`). |
-| `ftlUrl` | No | `https://github.com/MicroFocus/ADM-FT-ToolsLauncher/releases/download/v26.3.0/FTToolsLauncher_net48.exe` | FTToolsLauncher URL (`runType: filesystem \| alm`). |
+| `ftlUrl` | No | `https://github.com/MicroFocus/ADM-FT-ToolsLauncher/releases/download/v26.3.0/FTToolsLauncher_net48.exe` | Official Micro Focus URL used to download `FTToolsLauncher.exe` when it is not already present on the runner (`runType: filesystem \| alm`). |
 | `archiveReportsAsSingleArtifact` | No | `false` | Upload reports as one artifact instead of per test. |
 | `logLevel` | No | `3` | Logging level `1-5` (`1=trace ... 5=error`). |
 | `cleanupTestRunFiles` | No | `true` | Delete test run files after execution. |
@@ -359,7 +358,7 @@ The source of truth for parameters is [`action.yml`](./action.yml). The followin
 
 - Set `logLevel: "1"` or `logLevel: "2"` for more verbose logs.
 - Set `cleanupTestRunFiles: "false"` when troubleshooting so run files remain on the runner.
-- If using self-signed ALM certificates, use:
+- If using HTTP or self-signed ALM certificates, use:
 
 ```yaml
 env:

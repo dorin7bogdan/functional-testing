@@ -28,7 +28,7 @@ inputs:
     default: "false"
   githubToken:
     description: 'GitHub PAT'
-    required: true
+    required: false # required for runType "filesystem" only.
 
 # This section defines ALM-specific configuration inputs, including both: regular ALM and ALM Lab Management runs
   almServerUrl:
