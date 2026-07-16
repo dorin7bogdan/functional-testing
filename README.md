@@ -30,6 +30,7 @@ Using this action, development and QA teams can:
    - [4.3 Workflow Parameters](#43-workflow-parameters)
    - [4.4 Debugging](#44-debugging)
    - [4.5 Outputs](#45-outputs)
+   - [4.6 Workspace and File Management](#46-workspace-and-file-management)
 - [5. Running FT Tests](#5-running-ft-tests)
   - [5.1. GitHub self-hosted runner](#51-github-self-hosted-runner)
   - [5.2. Run the Workflow](#52-run-the-workflow)
@@ -224,6 +225,8 @@ jobs:
 
 Run Functional Test Sets or Build Verification Suites (BVS) managed by ALM Lab Management.
 
+This action does not use `FTToolsLauncher.exe`.
+
 ```yaml
 name: FT-integration-ALM-Lab
 
@@ -376,6 +379,18 @@ The action exposes:
 | `exitCode` | FT process exit code |
 | `status` | FT final status: `Passed`, `Failed`, `Unstable`, `Aborted`, or `Unknown` |
 
+## 4.6 Workspace and File Management
+
+- When using `runType: filesystem`, the repository is cloned on the local GitHub self-hosted runner machine.
+- When using `runType: alm | alm-lab`, the repository is not cloned.
+- During execution, the action is creating temporary runtime files in the runner workspace (for example `props_###.txt` or `params_###.xml`) mostly used by `FTToolsLauncher.exe`.
+- Test results and reports are stored in the runner workspace too.
+- File handling is controlled by `cleanupTestRunFiles`:
+  - `true` (default): remove run files and reports (excepting `FTToolsLauncher.exe`) at the end of execution.
+  - `false`: keep run files and reports for troubleshooting purposes.
+- By design, all file operations stay inside the runner workspace, for security reasons.
+- All run files and reports are uploaded to GitHub Actions as workflow artifacts, and can be downloaded from the workflow run summary page.
+
 ## 5. Running FT Tests
 
 ### 5.1. GitHub self-hosted runner
@@ -400,5 +415,7 @@ The action exposes:
 2. Multiple YML workflows/actions can be created/used per GitHub repository, but it's recommended to use the same branch for all FT actions. An attempt to use a second branch can lead to unexpected results / errors.
 3. When using `runType: filesystem`, only tests that are stored in the cloned GitHub repository can be executed. Tests located elsewhere on the runner machine are not supported. All `testPaths` values must reference files or folders within the repository and must be specified as paths relative to the repository root.
 4. When using `runType: alm` or `runType: alm-lab`, tests are executed directly from OpenText ALM / ALM Lab Management. Repository test assets are not cloned, accessed, or used as part of the test execution. The GitHub repository is only used to host and run the workflow definition.
-5. Running Functional Testing Lab (formerly Digital Lab) tests is not supported right now
-6. Running Parallel tests is not supported right now
+5. Running parameterized FileSystem tests is supported only through MTBX files.
+6. Running parameterized ALM Test Sets is currently not supported.
+7. Running Functional Testing Lab (formerly Digital Lab) tests is currently not supported.
+8. Running Parallel tests is currently not supported.
