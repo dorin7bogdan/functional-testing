@@ -383,7 +383,7 @@ The action exposes:
 
 - When using `runType: filesystem`, the repository is cloned on the local GitHub self-hosted runner machine.
 - When using `runType: alm | alm-lab`, the repository is not cloned.
-- During execution, the action is creating temporary runtime files in the runner workspace (for example `props_###.txt` or `params_###.xml`) mostly used by `FTToolsLauncher.exe`.
+- During execution, the action creates temporary runtime files in the runner workspace (for example `props_###.txt` or `params_###.xml`) mostly used by `FTToolsLauncher.exe`.
 - Test results and reports are stored in the runner workspace too.
 - File handling is controlled by `cleanupTestRunFiles`:
   - `true` (default): remove run files and reports (excepting `FTToolsLauncher.exe`) at the end of execution.
