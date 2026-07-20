@@ -137588,7 +137588,7 @@ class JsonParser {
             const fields = getEntityFields(entity);
             for (const field of fields) {
                 const fieldName = String(field?.Name ?? '').toLowerCase();
-                if (fieldName === 'cycle-id' || fieldName === 'id') {
+                if (fieldName === 'cycle-id') {
                     const id = Number.parseInt(getFieldValue(field), 10);
                     if (!Number.isNaN(id)) {
                         ids.push(id);
